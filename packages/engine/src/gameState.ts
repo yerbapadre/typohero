@@ -1,5 +1,3 @@
-// Game state machine: lobby → countdown → playing → results. Shape TBD.
-
 import type { InstrumentLane } from "./track";
 
 export type Phase = "lobby" | "countdown" | "playing" | "results";

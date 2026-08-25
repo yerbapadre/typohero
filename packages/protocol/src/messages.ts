@@ -1,5 +1,3 @@
-// Wire contracts: ClientMsg | ServerMsg. Shape TBD — kept minimal on purpose.
-
 import type { GameSnapshot } from "@typohero/engine";
 import type { GameEvent } from "./events";
 

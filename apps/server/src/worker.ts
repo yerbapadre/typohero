@@ -1,5 +1,3 @@
-// Cloudflare Worker HTTP entry. Routes requests to the room Durable Object. Placeholder.
-
 export { GameRoom } from "./GameRoom";
 
 type Env = { GAME_ROOM: DurableObjectNamespace };

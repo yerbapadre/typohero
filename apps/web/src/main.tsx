@@ -1,5 +1,3 @@
-// Vite entry. Picks Stage or Controller by path (?role or /stage). Routing is placeholder.
-
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Stage } from "./routes/Stage";
