@@ -1,0 +1,20 @@
+{
+  "name": "typohero",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @typohero/web dev",
+    "dev:server": "pnpm --filter @typohero/server dev",
+    "build": "pnpm --filter @typohero/web build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @typohero/engine test"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

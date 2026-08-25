@@ -1,0 +1,11 @@
+name = "typohero"
+main = "src/worker.ts"
+compatibility_date = "2026-08-01"
+
+[[durable_objects.bindings]]
+name = "GAME_ROOM"
+class_name = "GameRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
