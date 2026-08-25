@@ -17,6 +17,8 @@ export type TypingRun = {
   cursor: number;
   displayChars: CharState[];
   strokes: Stroke[];
+  streak: number;
+  longestStreak: number;
 };
 
 export type TypingStats = {
