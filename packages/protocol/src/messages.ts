@@ -8,7 +8,7 @@ export type ClientMsg =
   | { type: "setDifficulty"; difficulty: Difficulty }
   | { type: "ready"; ready: boolean }
   | { type: "stats"; stat: LiveStat }
-  | { type: "proposeSong"; songId: string }
+  | { type: "proposeSong"; songId: string; durationMs: number }
   | { type: "confirmSong" }
   | { type: "proposeStart" }
   | { type: "confirmStart" }

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --port 8799",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit"
   },
@@ -13,8 +13,8 @@
     "@typohero/protocol": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241218.0",
+    "@cloudflare/workers-types": "^5.20260825.1",
     "typescript": "^5.7.2",
-    "wrangler": "^3.95.0"
+    "wrangler": "^4.42.0"
   }
 }

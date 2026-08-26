@@ -38,30 +38,30 @@ describe("join & host", () => {
 describe("song propose/confirm", () => {
   it("host proposal auto-confirms", () => {
     let s = lobbyWith("a", "b");
-    s = run(s, { t: "proposeSong", id: "a", songId: "chocolate" });
+    s = run(s, { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 });
     expect(s.songId).toBe("chocolate");
     expect(s.songProposal).toBeNull();
   });
 
   it("non-host proposal waits and cannot self-confirm", () => {
     let s = lobbyWith("a", "b");
-    s = run(s, { t: "proposeSong", id: "b", songId: "chocolate" });
+    s = run(s, { t: "proposeSong", id: "b", songId: "chocolate", durationMs: 224000 });
     expect(s.songId).toBeNull();
-    expect(s.songProposal).toEqual({ songId: "chocolate", by: "b" });
+    expect(s.songProposal).toEqual({ songId: "chocolate", durationMs: 224000, by: "b" });
     s = run(s, { t: "confirmSong", id: "b" });
     expect(s.songId).toBeNull();
   });
 
   it("another member can confirm a non-host proposal", () => {
     let s = lobbyWith("a", "b", "c");
-    s = run(s, { t: "proposeSong", id: "b", songId: "chocolate" });
+    s = run(s, { t: "proposeSong", id: "b", songId: "chocolate", durationMs: 224000 });
     s = run(s, { t: "confirmSong", id: "c" });
     expect(s.songId).toBe("chocolate");
   });
 
   it("host can confirm a non-host proposal", () => {
     let s = lobbyWith("a", "b");
-    s = run(s, { t: "proposeSong", id: "b", songId: "chocolate" });
+    s = run(s, { t: "proposeSong", id: "b", songId: "chocolate", durationMs: 224000 });
     s = run(s, { t: "confirmSong", id: "a" });
     expect(s.songId).toBe("chocolate");
   });
@@ -76,14 +76,14 @@ describe("instrument gating", () => {
 
   it("can pick once a song is confirmed", () => {
     let s = lobbyWith("a");
-    s = run(s, { t: "proposeSong", id: "a", songId: "chocolate" });
+    s = run(s, { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 });
     s = run(s, { t: "pickInstrument", id: "a", instrument: "vocals" });
     expect(s.members[0]!.instrument).toBe("vocals");
   });
 
   it("rejects an instrument already taken by another member", () => {
     let s = lobbyWith("a", "b");
-    s = run(s, { t: "proposeSong", id: "a", songId: "chocolate" });
+    s = run(s, { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 });
     s = run(s, { t: "pickInstrument", id: "a", instrument: "vocals" });
     s = run(s, { t: "pickInstrument", id: "b", instrument: "vocals" });
     expect(s.members[1]!.instrument).toBeNull();
@@ -93,12 +93,12 @@ describe("instrument gating", () => {
     let s = lobbyWith("a");
     s = run(
       s,
-      { t: "proposeSong", id: "a", songId: "chocolate" },
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
       { t: "pickInstrument", id: "a", instrument: "vocals" },
       { t: "ready", id: "a", ready: true },
     );
     expect(s.members[0]!.ready).toBe(true);
-    s = run(s, { t: "proposeSong", id: "a", songId: "other-song" });
+    s = run(s, { t: "proposeSong", id: "a", songId: "other-song", durationMs: 224000 });
     expect(s.members[0]!.ready).toBe(false);
   });
 });
@@ -107,7 +107,7 @@ describe("start propose/confirm & gating", () => {
   function readyBand(): RoomState {
     return run(
       lobbyWith("a", "b"),
-      { t: "proposeSong", id: "a", songId: "chocolate" },
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
       { t: "pickInstrument", id: "a", instrument: "vocals" },
       { t: "pickInstrument", id: "b", instrument: "drums" },
       { t: "ready", id: "a", ready: true },
@@ -123,7 +123,7 @@ describe("start propose/confirm & gating", () => {
   it("start is blocked until everyone is ready", () => {
     let s = run(
       lobbyWith("a", "b"),
-      { t: "proposeSong", id: "a", songId: "chocolate" },
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
       { t: "pickInstrument", id: "a", instrument: "vocals" },
       { t: "ready", id: "a", ready: true },
     );
@@ -166,7 +166,7 @@ describe("lifecycle", () => {
   it("countdown sets a start timestamp, then songStarted moves to playing", () => {
     let s = run(
       lobbyWith("a"),
-      { t: "proposeSong", id: "a", songId: "chocolate" },
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
       { t: "pickInstrument", id: "a", instrument: "vocals" },
       { t: "ready", id: "a", ready: true },
       { t: "proposeStart", id: "a" },
@@ -182,7 +182,7 @@ describe("lifecycle", () => {
   it("nextSong returns to lobby and clears song state", () => {
     let s = run(
       lobbyWith("a"),
-      { t: "proposeSong", id: "a", songId: "chocolate" },
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
       { t: "pickInstrument", id: "a", instrument: "vocals" },
       { t: "ready", id: "a", ready: true },
       { t: "proposeStart", id: "a" },

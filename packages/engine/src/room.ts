@@ -18,7 +18,7 @@ export type Member = {
   ready: boolean;
 };
 
-export type SongProposal = { songId: string; by: string };
+export type SongProposal = { songId: string; durationMs: number; by: string };
 export type StartProposal = { by: string };
 
 export type RoomState = {
@@ -27,6 +27,7 @@ export type RoomState = {
   members: Member[];
   songProposal: SongProposal | null;
   songId: string | null;
+  songDurationMs: number | null;
   startProposal: StartProposal | null;
   startedAtEpochMs: number | null;
 };
@@ -39,7 +40,7 @@ export type RoomAction =
   | { t: "pickPassage"; id: string; passageId: string }
   | { t: "setDifficulty"; id: string; difficulty: Difficulty }
   | { t: "ready"; id: string; ready: boolean }
-  | { t: "proposeSong"; id: string; songId: string }
+  | { t: "proposeSong"; id: string; songId: string; durationMs: number }
   | { t: "confirmSong"; id: string }
   | { t: "proposeStart"; id: string }
   | { t: "confirmStart"; id: string }
@@ -58,6 +59,7 @@ export function initialRoom(): RoomState {
     members: [],
     songProposal: null,
     songId: null,
+    songDurationMs: null,
     startProposal: null,
     startedAtEpochMs: null,
   };
@@ -147,7 +149,11 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
     }
 
     case "proposeSong": {
-      const proposal: SongProposal = { songId: action.songId, by: action.id };
+      const proposal: SongProposal = {
+        songId: action.songId,
+        durationMs: action.durationMs,
+        by: action.id,
+      };
       if (isHost(state, action.id)) return confirmSongInto({ ...state, songProposal: proposal });
       return { ...state, songProposal: proposal };
     }
@@ -194,6 +200,7 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
         phase: "lobby",
         songProposal: null,
         songId: null,
+        songDurationMs: null,
         startProposal: null,
         startedAtEpochMs: null,
         members: state.members.map((m) => ({ ...m, ready: false })),
@@ -215,6 +222,7 @@ function confirmSongInto(state: RoomState): RoomState {
   return {
     ...state,
     songId: p.songId,
+    songDurationMs: p.durationMs,
     songProposal: null,
     members: state.members.map((m) => ({ ...m, ready: false })),
   };
