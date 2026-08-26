@@ -9,9 +9,12 @@ import {
   type Keypress,
   type Difficulty,
 } from "@typohero/engine";
+import type { Song } from "@typohero/engine";
 import { PassageView } from "./PassageView";
-import { StemPlayer } from "../audio/StemPlayer";
+import { MultiStemPlayer } from "../audio/StemPlayer";
 import { qualityFromRun } from "../audio/reactions";
+
+const SONG_URL = "/songs/placeholder";
 
 const PASSAGE = "the quick brown fox jumps over the lazy dog";
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
@@ -22,13 +25,14 @@ export function PlayController() {
   const [started, setStarted] = useState(false);
   const startedRef = useRef(false);
   const startRef = useRef<number | null>(null);
-  const stemRef = useRef<StemPlayer | null>(null);
+  const stemRef = useRef<MultiStemPlayer | null>(null);
   const wpm = DIFFICULTY_WPM[difficulty];
 
   async function start() {
-    const stem = new StemPlayer();
+    const song: Song = await fetch(`${SONG_URL}/song.json`).then((r) => r.json());
+    const stem = new MultiStemPlayer();
     stemRef.current = stem;
-    await stem.load("/loop.wav");
+    await stem.load(song, SONG_URL);
     await stem.start();
     startedRef.current = true;
     setStarted(true);
@@ -82,7 +86,7 @@ export function PlayController() {
   }, [wpm]);
 
   useEffect(() => {
-    if (started) stemRef.current?.setQuality(qualityFromRun(run));
+    if (started) stemRef.current?.setAll(qualityFromRun(run));
   }, [run, started]);
 
   return (
