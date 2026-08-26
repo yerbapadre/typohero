@@ -2,6 +2,13 @@ name = "typohero"
 main = "src/worker.ts"
 compatibility_date = "2026-08-01"
 
+[observability]
+enabled = true
+
+[assets]
+directory = "../web/dist"
+not_found_handling = "single-page-application"
+
 [[durable_objects.bindings]]
 name = "GAME_ROOM"
 class_name = "GameRoom"
