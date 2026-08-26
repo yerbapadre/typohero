@@ -1,0 +1,91 @@
+# TypoHero — Roadmap
+
+A co-op typing performance game (Nitro Type × Guitar Hero) for a company talent show.
+Everyone joins a band, picks an instrument, and "plays" their part by typing against a
+paced passage. Type well → your stem sounds tight. Choke → *your* instrument audibly
+falls apart while the band keeps going.
+
+See `README.md` for architecture. This file tracks what's done, what's next, and the
+open decisions.
+
+## Architecture at a glance
+
+Dependencies point downward only. The engine is pure and knows nothing about React,
+audio, network, or Cloudflare.
+
+```
+packages/engine    pure TS: typing reducer, pace, scoring, room state machine
+packages/protocol  wire contracts (ClientMsg / ServerMsg, LiveStat)
+apps/web           Vite + React client (player controller + audio host)
+apps/server        Cloudflare Worker + Durable Object (one DO = one room)
+scripts/           offline Demucs stem-splitting pipeline
+```
+
+## Done
+
+- [x] **Typing engine** — forgiving reducer (backspace → fixed), streak tracking. Tested.
+- [x] **Pace layer** — difficulty → WPM; a pace cursor burns un-typed chars (hard mode). Tested.
+- [x] **Scoring** — base points × streak-multiplier ladder (up to 5×). Tested.
+- [x] **Navigation** — top-level screen state machine (mode → band → waiting → … → performance).
+- [x] **Audio reaction** — Web Audio per-stem degradation (lowpass + distortion + duck), driven by a rolling typing-quality signal.
+- [x] **Multi-stem playback** — 6 lanes mixed live, sample-synced; per-lane gating (your stem reacts, others play clean backing).
+- [x] **Offline stem pipeline** — `setup-demucs.sh` + `add-song.sh` (Demucs 6-source → Opus → manifest).
+- [x] **Room state machine** — pure reducer: join/reconnect, host, propose/confirm song & start, per-player instrument/passage/difficulty, audio-output modes, lifecycle. Tested.
+- [x] **Protocol** — full client/server message contracts.
+
+## Next up
+
+- [ ] **Durable Object shell** — wrap `roomReducer` with WebSocket I/O: connection ↔ player
+      mapping, broadcast `session` snapshots, 20Hz `frame` flush during play, end-of-song
+      alarm, reconnect tokens, host validation. Verifiable locally via `wrangler dev` /
+      Miniflare (no CF account needed until deploy).
+- [ ] **Client networking** — connect controllers to the DO, send `LiveStat` at ~20Hz,
+      render remote players; the audio-output machine drives all stems from the room frame.
+- [ ] **Wire nav → real flow** — join/lobby/waiting-room screens backed by live room state
+      (currently stubs). Song/passage/character pickers backed by real data.
+- [ ] **End-to-end multiplayer test** — 2+ mock clients through a full performance locally.
+
+## Backlog
+
+- [ ] **Content screens** — song picker, passage library, character customization (D1-backed).
+- [ ] **D1 seed** — script to upsert `song.json` manifests into the D1 catalog.
+- [ ] **Results screen** — final scores + awards (MVP, Most Destructive, Longest Choke, …).
+- [ ] **Miss stinger** — discrete "clunk" on error, on top of continuous degradation.
+- [ ] **Visual highway** — canvas note-highway / juice on the Stage view.
+- [ ] **Profiles** — single-player stats persisted to D1.
+- [ ] **Deploy** — Cloudflare (Worker + DO + static assets / R2 for stems).
+- [ ] **Feel tuning** — degradation intensity, recovery speed, quality window, WPM presets.
+
+## Open decisions
+
+- **Cheating** — stats are currently trust-the-client (fine for a friendly show). Promote
+  the engine into the DO for server-authoritative scoring only if needed.
+- **Stem hosting** — static `public/songs/` now; move to R2 before deploy.
+- **6-lane mapping** — Demucs gives vocals/drums/bass/guitar/piano/other. Revisit if a
+  song needs finer separation.
+- **Song upload / auto-split** — deferred product feature (needs a GPU service + job queue
+  + copyright review). The offline pipeline leaves the seam.
+
+## Local dev
+
+```
+pnpm install
+pnpm dev            # web client → localhost:5173
+pnpm test           # engine unit tests
+pnpm typecheck      # all packages
+```
+
+Add a song (needs a local audio file — keep copyrighted audio OUT of the repo; real songs
+are gitignored, the synthesized `placeholder` is committed for testing):
+
+```
+./scripts/setup-demucs.sh                                  # one-time (uv + py3.11 + demucs)
+./scripts/add-song.sh <file.mp3> <id> "<Title>" "<Artist>" # → apps/web/public/songs/<id>/
+```
+
+## Conventions
+
+- Conventional commits (`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`); atomic commits.
+- **No code comments** — code should be self-documenting.
+- Engine stays pure: no React/DOM/network/time. Keep time and I/O at the boundaries.
+- Every engine change ships with tests.
