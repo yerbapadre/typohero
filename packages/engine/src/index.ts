@@ -6,4 +6,5 @@ export * from "./profile";
 export * from "./typing";
 export * from "./pace";
 export * from "./scoring";
+export * from "./quality";
 export * from "./room";

@@ -1,22 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
-  createRun,
-  applyKeypress,
-  applyPace,
-  paceIndexFor,
   streakMultiplier,
+  qualityFromRun,
   DIFFICULTY_WPM,
   INSTRUMENT_LANES,
-  type Keypress,
   type Difficulty,
   type InstrumentLane,
 } from "@typohero/engine";
-import type { Song } from "@typohero/engine";
 import { PassageView } from "./PassageView";
-import { MultiStemPlayer } from "../audio/StemPlayer";
-import { qualityFromRun } from "../audio/reactions";
-
-const SONG_URL = "/songs/placeholder";
+import { useTypingRun } from "./useTypingRun";
+import { useStemOutput } from "./useStemOutput";
 
 const PASSAGE = "the quick brown fox jumps over the lazy dog";
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
@@ -24,75 +17,26 @@ const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
 export function PlayController() {
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [instrument, setInstrument] = useState<InstrumentLane>("vocals");
-  const [run, setRun] = useState(() => createRun(PASSAGE));
   const [started, setStarted] = useState(false);
-  const startedRef = useRef(false);
-  const startRef = useRef<number | null>(null);
-  const stemRef = useRef<MultiStemPlayer | null>(null);
   const wpm = DIFFICULTY_WPM[difficulty];
 
-  async function start() {
-    const song: Song = await fetch(`${SONG_URL}/song.json`).then((r) => r.json());
-    const stem = new MultiStemPlayer();
-    stemRef.current = stem;
-    await stem.load(song, SONG_URL);
-    await stem.start();
-    startedRef.current = true;
-    setStarted(true);
-  }
+  const { run, reset } = useTypingRun({
+    passage: PASSAGE,
+    wpm,
+    startAtMs: started ? "auto" : null,
+    enabled: started,
+  });
+  useStemOutput({
+    enabled: started,
+    songId: "placeholder",
+    laneQuality: { [instrument]: qualityFromRun(run) },
+  });
 
   function restart(next: Difficulty) {
     setDifficulty(next);
-    setRun(createRun(PASSAGE));
-    startRef.current = null;
+    setStarted(false);
+    reset();
   }
-
-  useEffect(() => {
-    return () => stemRef.current?.stop();
-  }, []);
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (!startedRef.current) return;
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      let press: Keypress | null = null;
-      if (e.key === "Backspace") {
-        press = { type: "backspace", atMs: performance.now() };
-      } else if (e.key.length === 1) {
-        press = { type: "char", char: e.key, atMs: performance.now() };
-      }
-      if (!press) return;
-
-      e.preventDefault();
-      if (press.type === "char" && startRef.current === null) {
-        startRef.current = press.atMs;
-      }
-      setRun((r) => applyKeypress(r, press));
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
-  useEffect(() => {
-    let raf = 0;
-    function tick() {
-      if (startRef.current !== null) {
-        const elapsed = performance.now() - startRef.current;
-        setRun((r) => applyPace(r, paceIndexFor(wpm, elapsed)));
-      }
-      raf = requestAnimationFrame(tick);
-    }
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [wpm]);
-
-  useEffect(() => {
-    if (!started) return;
-    stemRef.current?.setAll(1);
-    stemRef.current?.setQuality(instrument, qualityFromRun(run));
-  }, [run, started, instrument]);
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-10 bg-neutral-900 px-8 text-white">
@@ -125,7 +69,7 @@ export function PlayController() {
         {run.longestStreak}
       </div>
       {!started && (
-        <button onClick={start} className="font-mono text-lg text-green-400">
+        <button onClick={() => setStarted(true)} className="font-mono text-lg text-green-400">
           ▶ start
         </button>
       )}

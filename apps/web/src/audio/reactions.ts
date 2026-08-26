@@ -1,5 +1,3 @@
-import type { TypingRun } from "@typohero/engine";
-
 function clamp01(x: number): number {
   return Math.max(0, Math.min(1, x));
 }
@@ -26,17 +24,4 @@ export function makeDistortionCurve(amount: number): Float32Array {
     curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
   }
   return curve;
-}
-
-export function qualityFromRun(run: TypingRun, window = 10): number {
-  let good = 0;
-  let counted = 0;
-  for (let i = run.cursor - 1; i >= 0 && counted < window; i--) {
-    const s = run.displayChars[i]!;
-    if (s === "pending") continue;
-    counted++;
-    if (s === "correct" || s === "fixed") good++;
-  }
-  const pad = window - counted;
-  return (good + pad) / window;
 }
