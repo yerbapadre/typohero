@@ -1,21 +1,17 @@
 import { NavProvider, useNav } from "./nav/NavContext";
 import { ModeSelect } from "./screens/ModeSelect";
-import { BandSelect } from "./screens/BandSelect";
-import { WaitingRoom } from "./screens/WaitingRoom";
 import { CharacterSettings } from "./screens/CharacterSettings";
 import { SongSelection } from "./screens/SongSelection";
 import { TextSelection } from "./screens/TextSelection";
 import { PerformancePage } from "./screens/PerformancePage";
+import { Multiplayer } from "./screens/Multiplayer";
 
 function ScreenRouter() {
   const { state } = useNav();
+  if (state.screen === "mode") return <ModeSelect />;
+  if (state.mode === "multi") return <Multiplayer />;
+
   switch (state.screen) {
-    case "mode":
-      return <ModeSelect />;
-    case "band":
-      return <BandSelect />;
-    case "waiting":
-      return <WaitingRoom />;
     case "character":
       return <CharacterSettings />;
     case "song":
@@ -24,6 +20,8 @@ function ScreenRouter() {
       return <TextSelection />;
     case "performance":
       return <PerformancePage />;
+    default:
+      return <ModeSelect />;
   }
 }
 
