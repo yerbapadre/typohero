@@ -35,21 +35,22 @@ scripts/           offline Demucs stem-splitting pipeline
 - [x] **Durable Object shell** — `GameRoom` wraps `roomReducer` with WebSocket I/O: connection ↔ player mapping, reconnect tokens, `session` snapshots, 20Hz `frame` flush, synced countdown, end-of-song alarm. Verified end-to-end in local Miniflare.
 - [x] **Deploy + CI/CD** — one Worker serves the web SPA + the room DO. GitHub Actions: checks on PRs, auto-deploy on merge to `main`. Live at https://typohero.ejake370.workers.dev.
 - [x] **Password gate** — client-side hash gate (sessionStorage) to keep bots/randoms out.
+- [x] **Client networking** — `RoomClient` + `useRoom`; live lobby (create/join by code, roster, song propose/confirm, instrument pick with live uniqueness, ready, host mode/start) and multiplayer performance (20Hz `LiveStat` send, pace anchored to the shared song start, audio-output machine drives stems from the room frame). Verified with two isolated browser clients end-to-end.
+- [x] **Performance decomposition** — extracted `useTypingRun` / `useStatBroadcast` / `useStemOutput` hooks + `Roster`; pure `liveStatFromRun` / `qualityFromRun` in the engine. Solo + multi share the typing/pace/audio logic.
 
 ## Next up
 
-- [ ] **Client networking** — connect controllers to the DO, send `LiveStat` at ~20Hz,
-      render remote players; the audio-output machine drives all stems from the room frame.
-      This is the piece that makes multiplayer actually playable in-browser.
-- [ ] **Wire nav → real flow** — join/lobby/waiting-room screens backed by live room state
-      (currently stubs). Song/passage/character pickers backed by real data.
-- [ ] **End-to-end multiplayer test** — 2+ real browser clients through a full performance.
+- [ ] **Wire nav → real flow** — the single-player screens (character/song/text) are still
+      click-through stubs; back them with real pickers. Multiplayer lobby is live already.
+- [ ] **Passage picker** — passage is currently hardcoded in both performance screens;
+      surface the per-player passage selection (data model already supports it).
+- [ ] **Results screen** — dedicated view on `phase: results`: final scores per player +
+      band total (both solo and multi land in `results` with no real screen yet).
 
 ## Backlog
 
 - [ ] **Content screens** — song picker, passage library, character customization (D1-backed).
 - [ ] **D1 seed** — script to upsert `song.json` manifests into the D1 catalog.
-- [ ] **Results screen** — final scores per player + band total.
 - [ ] **Miss stinger** — discrete "clunk" on error, on top of continuous degradation.
 - [ ] **Visual highway** — canvas note-highway / juice on the Stage view.
 - [ ] **Profiles** — single-player stats persisted to D1.
@@ -57,6 +58,10 @@ scripts/           offline Demucs stem-splitting pipeline
 - [ ] **`index.html` no-cache** — serve the SPA entry uncached so deploys show up instantly (hashed assets stay immutable).
 - [ ] **Cloudflare Access** — company SSO in front of the app before the show (replaces the dumb gate).
 - [ ] **Feel tuning** — degradation intensity, recovery speed, quality window, WPM presets.
+- [ ] **Own-lane-local audio** — in distributed mode, drive your own lane from your local run
+      (zero latency) instead of the round-tripped frame. Only if the ~100ms feels laggy.
+- [ ] **Reconnect UX** — the token/rejoin plumbing exists; add the actual "reconnecting…" flow
+      and handle a mid-performance drop gracefully.
 
 ## Open decisions
 
