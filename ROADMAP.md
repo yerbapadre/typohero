@@ -32,18 +32,18 @@ scripts/           offline Demucs stem-splitting pipeline
 - [x] **Offline stem pipeline** — `setup-demucs.sh` + `add-song.sh` (Demucs 6-source → Opus → manifest).
 - [x] **Room state machine** — pure reducer: join/reconnect, host, propose/confirm song & start, per-player instrument/passage/difficulty, audio-output modes, lifecycle. Tested.
 - [x] **Protocol** — full client/server message contracts.
+- [x] **Durable Object shell** — `GameRoom` wraps `roomReducer` with WebSocket I/O: connection ↔ player mapping, reconnect tokens, `session` snapshots, 20Hz `frame` flush, synced countdown, end-of-song alarm. Verified end-to-end in local Miniflare.
+- [x] **Deploy + CI/CD** — one Worker serves the web SPA + the room DO. GitHub Actions: checks on PRs, auto-deploy on merge to `main`. Live at https://typohero.ejake370.workers.dev.
+- [x] **Password gate** — client-side hash gate (sessionStorage) to keep bots/randoms out.
 
 ## Next up
 
-- [ ] **Durable Object shell** — wrap `roomReducer` with WebSocket I/O: connection ↔ player
-      mapping, broadcast `session` snapshots, 20Hz `frame` flush during play, end-of-song
-      alarm, reconnect tokens, host validation. Verifiable locally via `wrangler dev` /
-      Miniflare (no CF account needed until deploy).
 - [ ] **Client networking** — connect controllers to the DO, send `LiveStat` at ~20Hz,
       render remote players; the audio-output machine drives all stems from the room frame.
+      This is the piece that makes multiplayer actually playable in-browser.
 - [ ] **Wire nav → real flow** — join/lobby/waiting-room screens backed by live room state
       (currently stubs). Song/passage/character pickers backed by real data.
-- [ ] **End-to-end multiplayer test** — 2+ mock clients through a full performance locally.
+- [ ] **End-to-end multiplayer test** — 2+ real browser clients through a full performance.
 
 ## Backlog
 
@@ -53,14 +53,16 @@ scripts/           offline Demucs stem-splitting pipeline
 - [ ] **Miss stinger** — discrete "clunk" on error, on top of continuous degradation.
 - [ ] **Visual highway** — canvas note-highway / juice on the Stage view.
 - [ ] **Profiles** — single-player stats persisted to D1.
-- [ ] **Deploy** — Cloudflare (Worker + DO + static assets / R2 for stems).
+- [ ] **Stems → R2** — move real song stems to a private R2 bucket (kept out of the public repo).
+- [ ] **`index.html` no-cache** — serve the SPA entry uncached so deploys show up instantly (hashed assets stay immutable).
+- [ ] **Cloudflare Access** — company SSO in front of the app before the show (replaces the dumb gate).
 - [ ] **Feel tuning** — degradation intensity, recovery speed, quality window, WPM presets.
 
 ## Open decisions
 
 - **Cheating** — stats are currently trust-the-client (fine for a friendly show). Promote
   the engine into the DO for server-authoritative scoring only if needed.
-- **Stem hosting** — static `public/songs/` now; move to R2 before deploy.
+- **Stem hosting** — static `public/songs/` (only the safe `placeholder` is deployed; real songs are gitignored). Move real stems to R2 before the show.
 - **6-lane mapping** — Demucs gives vocals/drums/bass/guitar/piano/other. Revisit if a
   song needs finer separation.
 - **Song upload / auto-split** — deferred product feature (needs a GPU service + job queue
