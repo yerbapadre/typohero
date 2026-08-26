@@ -1,11 +1,29 @@
-import { useEffect, useState } from "react";
-import { createRun, applyKeypress, type Keypress } from "@typohero/engine";
+import { useEffect, useRef, useState } from "react";
+import {
+  createRun,
+  applyKeypress,
+  applyPace,
+  paceIndexFor,
+  DIFFICULTY_WPM,
+  type Keypress,
+  type Difficulty,
+} from "@typohero/engine";
 import { PassageView } from "./PassageView";
 
 const PASSAGE = "the quick brown fox jumps over the lazy dog";
+const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
 
 export function PlayController() {
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [run, setRun] = useState(() => createRun(PASSAGE));
+  const startRef = useRef<number | null>(null);
+  const wpm = DIFFICULTY_WPM[difficulty];
+
+  function restart(next: Difficulty) {
+    setDifficulty(next);
+    setRun(createRun(PASSAGE));
+    startRef.current = null;
+  }
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -20,6 +38,9 @@ export function PlayController() {
       if (!press) return;
 
       e.preventDefault();
+      if (press.type === "char" && startRef.current === null) {
+        startRef.current = press.atMs;
+      }
       setRun((r) => applyKeypress(r, press));
     }
 
@@ -27,8 +48,34 @@ export function PlayController() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    let raf = 0;
+    function tick() {
+      if (startRef.current !== null) {
+        const elapsed = performance.now() - startRef.current;
+        const paceIndex = paceIndexFor(wpm, elapsed);
+        setRun((r) => applyPace(r, paceIndex));
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [wpm]);
+
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-10 bg-neutral-900 px-8 text-white">
+      <div className="flex gap-2 font-mono text-sm">
+        {DIFFICULTIES.map((d) => (
+          <button
+            key={d}
+            onClick={() => restart(d)}
+            className={d === difficulty ? "text-green-400" : "text-neutral-500"}
+          >
+            {d}
+          </button>
+        ))}
+        <span className="text-neutral-600">· {wpm} wpm</span>
+      </div>
       <PassageView text={run.text} displayChars={run.displayChars} cursor={run.cursor} />
       <div className="font-mono text-sm text-neutral-400">
         streak {run.streak} · longest {run.longestStreak}
