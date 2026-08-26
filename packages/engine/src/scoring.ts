@@ -11,6 +11,14 @@ export type BandScore = {
   hype: number;
 };
 
+export type LiveStat = {
+  quality: number;
+  streak: number;
+  points: number;
+  progress: number;
+  accuracy: number;
+};
+
 export const BASE_POINTS = 100;
 
 const MULTIPLIER_TIERS: [number, number][] = [

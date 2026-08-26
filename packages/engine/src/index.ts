@@ -6,4 +6,4 @@ export * from "./profile";
 export * from "./typing";
 export * from "./pace";
 export * from "./scoring";
-export * from "./gameState";
+export * from "./room";
