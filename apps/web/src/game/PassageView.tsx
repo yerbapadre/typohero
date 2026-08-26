@@ -5,6 +5,7 @@ const stateClass: Record<CharState, string> = {
   correct: "text-green-400",
   incorrect: "text-red-400 bg-red-500/20 rounded",
   fixed: "text-amber-400",
+  missed: "text-neutral-600 line-through",
 };
 
 export function PassageView({

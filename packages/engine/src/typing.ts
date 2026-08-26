@@ -1,6 +1,6 @@
 export type TypingText = string;
 
-export type CharState = "pending" | "correct" | "incorrect" | "fixed";
+export type CharState = "pending" | "correct" | "incorrect" | "fixed" | "missed";
 
 export type StrokeOutcome = "correct" | "incorrect" | "fixed";
 

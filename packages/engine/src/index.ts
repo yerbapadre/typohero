@@ -4,5 +4,6 @@ export * from "./passage";
 export * from "./difficulty";
 export * from "./profile";
 export * from "./typing";
+export * from "./pace";
 export * from "./scoring";
 export * from "./gameState";
