@@ -1,0 +1,14 @@
+{
+  "id": "placeholder",
+  "title": "Placeholder Loop",
+  "artist": "TypoHero",
+  "durationMs": 4000,
+  "lanes": [
+    { "instrument": "vocals", "stem": "vocals.webm" },
+    { "instrument": "drums", "stem": "drums.webm" },
+    { "instrument": "bass", "stem": "bass.webm" },
+    { "instrument": "guitar", "stem": "guitar.webm" },
+    { "instrument": "piano", "stem": "piano.webm" },
+    { "instrument": "other", "stem": "other.webm" }
+  ]
+}
