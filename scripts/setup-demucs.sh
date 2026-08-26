@@ -14,7 +14,7 @@ echo "creating isolated python 3.11 venv at $VENV ..."
 uv venv --python 3.11 "$VENV"
 
 echo "installing demucs + torch (this downloads ~2GB the first time)..."
-uv pip install --python "$VENV/bin/python" demucs
+uv pip install --python "$VENV/bin/python" demucs numpy soundfile
 
 echo
 echo "done. run ./scripts/add-song.sh <mp3> <id> \"<title>\" \"<artist>\""

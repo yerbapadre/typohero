@@ -4,3 +4,7 @@ dist/
 .dev.vars
 *.local
 .DS_Store
+.demucs/
+
+apps/web/public/songs/*
+!apps/web/public/songs/placeholder/

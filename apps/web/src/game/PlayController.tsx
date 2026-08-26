@@ -6,8 +6,10 @@ import {
   paceIndexFor,
   streakMultiplier,
   DIFFICULTY_WPM,
+  INSTRUMENT_LANES,
   type Keypress,
   type Difficulty,
+  type InstrumentLane,
 } from "@typohero/engine";
 import type { Song } from "@typohero/engine";
 import { PassageView } from "./PassageView";
@@ -21,6 +23,7 @@ const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
 
 export function PlayController() {
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [instrument, setInstrument] = useState<InstrumentLane>("vocals");
   const [run, setRun] = useState(() => createRun(PASSAGE));
   const [started, setStarted] = useState(false);
   const startedRef = useRef(false);
@@ -86,8 +89,10 @@ export function PlayController() {
   }, [wpm]);
 
   useEffect(() => {
-    if (started) stemRef.current?.setAll(qualityFromRun(run));
-  }, [run, started]);
+    if (!started) return;
+    stemRef.current?.setAll(1);
+    stemRef.current?.setQuality(instrument, qualityFromRun(run));
+  }, [run, started, instrument]);
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-10 bg-neutral-900 px-8 text-white">
@@ -102,6 +107,17 @@ export function PlayController() {
           </button>
         ))}
         <span className="text-neutral-600">· {wpm} wpm</span>
+      </div>
+      <div className="flex gap-2 font-mono text-sm">
+        {INSTRUMENT_LANES.map((lane) => (
+          <button
+            key={lane}
+            onClick={() => setInstrument(lane)}
+            className={lane === instrument ? "text-sky-400" : "text-neutral-500"}
+          >
+            {lane}
+          </button>
+        ))}
       </div>
       <PassageView text={run.text} displayChars={run.displayChars} cursor={run.cursor} />
       <div className="font-mono text-sm text-neutral-400">
