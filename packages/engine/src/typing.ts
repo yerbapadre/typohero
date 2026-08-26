@@ -1,3 +1,5 @@
+import { strokePoints } from "./scoring";
+
 export type TypingText = string;
 
 export type CharState = "pending" | "correct" | "incorrect" | "fixed" | "missed";
@@ -19,6 +21,7 @@ export type TypingRun = {
   strokes: Stroke[];
   streak: number;
   longestStreak: number;
+  points: number;
 };
 
 export type TypingStats = {
@@ -39,6 +42,7 @@ export function createRun(text: TypingText): TypingRun {
     strokes: [],
     streak: 0,
     longestStreak: 0,
+    points: 0,
   };
 }
 
@@ -66,6 +70,7 @@ export function applyKeypress(run: TypingRun, press: Keypress): TypingRun {
 
   const stroke: Stroke = { index, expected, typed: press.char, outcome, atMs: press.atMs };
   const streak = outcome === "incorrect" ? 0 : run.streak + 1;
+  const gained = outcome === "incorrect" ? 0 : strokePoints(streak);
 
   return {
     ...run,
@@ -74,5 +79,6 @@ export function applyKeypress(run: TypingRun, press: Keypress): TypingRun {
     strokes: [...run.strokes, stroke],
     streak,
     longestStreak: Math.max(run.longestStreak, streak),
+    points: run.points + gained,
   };
 }

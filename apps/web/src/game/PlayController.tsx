@@ -4,6 +4,7 @@ import {
   applyKeypress,
   applyPace,
   paceIndexFor,
+  streakMultiplier,
   DIFFICULTY_WPM,
   type Keypress,
   type Difficulty,
@@ -78,7 +79,8 @@ export function PlayController() {
       </div>
       <PassageView text={run.text} displayChars={run.displayChars} cursor={run.cursor} />
       <div className="font-mono text-sm text-neutral-400">
-        streak {run.streak} · longest {run.longestStreak}
+        {run.points} pts · streak {run.streak} (×{streakMultiplier(run.streak)}) · longest{" "}
+        {run.longestStreak}
       </div>
     </div>
   );

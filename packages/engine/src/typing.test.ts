@@ -40,6 +40,20 @@ describe("correct typing", () => {
   });
 });
 
+describe("points", () => {
+  it("awards base points per correct stroke at 1x", () => {
+    const run = type(createRun("cataract"), "cat");
+    expect(run.points).toBe(300);
+  });
+
+  it("awards nothing for an incorrect stroke", () => {
+    let run = type(createRun("cat"), "ca");
+    const before = run.points;
+    run = applyKeypress(run, char("x", 9));
+    expect(run.points).toBe(before);
+  });
+});
+
 describe("incorrect typing", () => {
   it("marks the char incorrect, advances, and resets streak", () => {
     let run = type(createRun("cat"), "ca");
