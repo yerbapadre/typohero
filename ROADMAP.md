@@ -49,7 +49,7 @@ scripts/           offline Demucs stem-splitting pipeline
 
 - [ ] **Content screens** — song picker, passage library, character customization (D1-backed).
 - [ ] **D1 seed** — script to upsert `song.json` manifests into the D1 catalog.
-- [ ] **Results screen** — final scores + awards (MVP, Most Destructive, Longest Choke, …).
+- [ ] **Results screen** — final scores per player + band total.
 - [ ] **Miss stinger** — discrete "clunk" on error, on top of continuous degradation.
 - [ ] **Visual highway** — canvas note-highway / juice on the Stage view.
 - [ ] **Profiles** — single-player stats persisted to D1.
