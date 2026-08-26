@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 
-const GATE_HASH = "ef4bddb6ec4a4f2c27dd3e55ec1f6c6e821b77d2d1e0fbc8b43f94b7bf544bd7";
+const GATE_HASH = "7585798689e45d180eba380a0a5a2ddd995738335fbb80336932bc50b382a456";
 const KEY = "th-gate";
 
 async function sha256(text: string): Promise<string> {
