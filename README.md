@@ -1,8 +1,8 @@
 # TypoHero
 
-A co-op typing performance game — a cross between Nitro Type and Guitar Hero. Players each take
+A co-op typing performance game — a cross between MonkeyType and Guitar Hero. Players each take
 an instrument lane; typing accuracy drives the playback of that instrument's audio stem, so a tight
-band sounds great and a fumbled lane audibly falls apart. Built for a live company talent show.
+band sounds great and a fumbled lane audibly falls apart. 
 
 ## Architecture
 
