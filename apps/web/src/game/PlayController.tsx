@@ -10,6 +10,7 @@ import {
 import { PassageView } from "./PassageView";
 import { useTypingRun } from "./useTypingRun";
 import { useStemOutput } from "./useStemOutput";
+import { useSongs } from "../net/useSongs";
 
 const PASSAGE = "the quick brown fox jumps over the lazy dog";
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
@@ -17,7 +18,10 @@ const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
 export function PlayController() {
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [instrument, setInstrument] = useState<InstrumentLane>("vocals");
+  const [songId, setSongId] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
+  const songs = useSongs();
+  const activeSongId = songId ?? songs?.[0]?.id ?? null;
   const wpm = DIFFICULTY_WPM[difficulty];
 
   const { run, reset } = useTypingRun({
@@ -28,7 +32,7 @@ export function PlayController() {
   });
   useStemOutput({
     enabled: started,
-    songId: "placeholder",
+    songId: activeSongId,
     laneQuality: { [instrument]: qualityFromRun(run) },
   });
 
@@ -53,6 +57,21 @@ export function PlayController() {
         <span className="text-neutral-600">· {wpm} wpm</span>
       </div>
       <div className="flex gap-2 font-mono text-sm">
+        {songs?.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => {
+              setSongId(s.id);
+              setStarted(false);
+              reset();
+            }}
+            className={s.id === activeSongId ? "text-amber-400" : "text-neutral-500"}
+          >
+            {s.title}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2 font-mono text-sm">
         {INSTRUMENT_LANES.map((lane) => (
           <button
             key={lane}
@@ -69,7 +88,11 @@ export function PlayController() {
         {run.longestStreak}
       </div>
       {!started && (
-        <button onClick={() => setStarted(true)} className="font-mono text-lg text-green-400">
+        <button
+          onClick={() => setStarted(true)}
+          disabled={!activeSongId}
+          className="font-mono text-lg text-green-400 disabled:text-neutral-600"
+        >
           ▶ start
         </button>
       )}

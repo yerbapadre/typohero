@@ -1,12 +1,6 @@
 import { useState, type ReactNode } from "react";
 
-const GATE_HASH = "7585798689e45d180eba380a0a5a2ddd995738335fbb80336932bc50b382a456";
 const KEY = "th-gate";
-
-async function sha256(text: string): Promise<string> {
-  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 export function Gate({ children }: { children: ReactNode }) {
   const [passed, setPassed] = useState(() => sessionStorage.getItem(KEY) === "ok");
@@ -17,7 +11,13 @@ export function Gate({ children }: { children: ReactNode }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if ((await sha256(value)) === GATE_HASH) {
+    const res = await fetch("/api/gate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ password: value }),
+    }).catch(() => null);
+    if (res?.ok) {
       sessionStorage.setItem(KEY, "ok");
       setPassed(true);
     } else {

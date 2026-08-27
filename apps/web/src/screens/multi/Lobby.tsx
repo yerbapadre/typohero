@@ -1,13 +1,10 @@
 import { INSTRUMENT_LANES, type InstrumentLane } from "@typohero/engine";
 import type { Room } from "../../net/useRoom";
-
-const SONGS = [
-  { id: "placeholder", title: "Placeholder Loop", durationMs: 4000 },
-  { id: "chocolate", title: "Chocolate — The 1975", durationMs: 224673 },
-];
+import { useSongs } from "../../net/useSongs";
 
 export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   const snap = room.snapshot!;
+  const songs = useSongs();
   const me = snap.members.find((m) => m.id === room.playerId);
   const isHost = snap.hostId === room.playerId;
   const takenLanes = new Set(
@@ -41,16 +38,22 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
         <div className="flex flex-col items-center gap-3">
           <div className="text-neutral-400">pick a song</div>
           <div className="flex gap-3">
-            {SONGS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() =>
-                  room.send({ type: "proposeSong", songId: s.id, durationMs: s.durationMs })
-                }
-              >
-                {s.title}
-              </button>
-            ))}
+            {songs === null ? (
+              <span className="text-neutral-600">loading…</span>
+            ) : songs.length === 0 ? (
+              <span className="text-neutral-600">no songs</span>
+            ) : (
+              songs.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() =>
+                    room.send({ type: "proposeSong", songId: s.id, durationMs: s.durationMs })
+                  }
+                >
+                  {s.title} — {s.artist}
+                </button>
+              ))
+            )}
           </div>
           {snap.songProposal && (
             <div className="text-sm text-amber-400">
