@@ -13,19 +13,20 @@ import { HighwayCanvas } from "../render/HighwayCanvas";
 import { useTypingRun } from "./useTypingRun";
 import { useStemOutput } from "./useStemOutput";
 import { useSongs } from "../net/useSongs";
+import { useNav } from "../nav/NavContext";
 
 const PASSAGE = "the quick brown fox jumps over the lazy dog";
 const TRAVEL_MS = 3500;
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
 
 export function PlayController() {
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
-  const [instrument, setInstrument] = useState<InstrumentLane>("vocals");
-  const [songId, setSongId] = useState<string | null>(null);
+  const { config, setConfig } = useNav();
   const [startAtMs, setStartAtMs] = useState<number | null>(null);
   const started = startAtMs !== null;
   const songs = useSongs();
-  const activeSongId = songId ?? songs?.[0]?.id ?? null;
+  const difficulty = config.difficulty;
+  const instrument: InstrumentLane = config.instrument ?? "vocals";
+  const activeSongId = config.songId ?? songs?.[0]?.id ?? null;
   const wpm = DIFFICULTY_WPM[difficulty];
 
   const text = useMemo(() => notesText(PASSAGE), []);
@@ -55,7 +56,7 @@ export function PlayController() {
           <button
             key={d}
             onClick={() => {
-              setDifficulty(d);
+              setConfig({ difficulty: d });
               stop();
             }}
             className={d === difficulty ? "text-green-400" : "text-neutral-500"}
@@ -70,7 +71,7 @@ export function PlayController() {
           <button
             key={s.id}
             onClick={() => {
-              setSongId(s.id);
+              setConfig({ songId: s.id });
               stop();
             }}
             className={s.id === activeSongId ? "text-amber-400" : "text-neutral-500"}
@@ -83,7 +84,7 @@ export function PlayController() {
         {INSTRUMENT_LANES.map((lane) => (
           <button
             key={lane}
-            onClick={() => setInstrument(lane)}
+            onClick={() => setConfig({ instrument: lane })}
             className={lane === instrument ? "text-sky-400" : "text-neutral-500"}
           >
             {lane}
