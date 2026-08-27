@@ -1,13 +1,20 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-const KEY = "th-gate";
+type Status = "checking" | "out" | "in";
 
 export function Gate({ children }: { children: ReactNode }) {
-  const [passed, setPassed] = useState(() => sessionStorage.getItem(KEY) === "ok");
+  const [status, setStatus] = useState<Status>("checking");
   const [value, setValue] = useState("");
   const [wrong, setWrong] = useState(false);
 
-  if (passed) return <>{children}</>;
+  useEffect(() => {
+    fetch("/api/gate", { credentials: "include" })
+      .then((r) => setStatus(r.ok ? "in" : "out"))
+      .catch(() => setStatus("out"));
+  }, []);
+
+  if (status === "checking") return null;
+  if (status === "in") return <>{children}</>;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,8 +25,7 @@ export function Gate({ children }: { children: ReactNode }) {
       body: JSON.stringify({ password: value }),
     }).catch(() => null);
     if (res?.ok) {
-      sessionStorage.setItem(KEY, "ok");
-      setPassed(true);
+      setStatus("in");
     } else {
       setWrong(true);
       setValue("");
