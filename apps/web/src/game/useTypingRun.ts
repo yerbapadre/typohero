@@ -1,51 +1,57 @@
 import { useEffect, useState } from "react";
-import { createRun, applyKeypress, applyPace, paceIndexFor, type Keypress } from "@typohero/engine";
+import { createRun, applyKeypress, applyNotePace, activeWordStart, type Note } from "@typohero/engine";
 
 export function useTypingRun(opts: {
-  passage: string;
-  wpm: number;
-  startAtMs: number | "auto" | null;
+  text: string;
+  notes: Note[];
+  startAtMs: number | null;
   enabled?: boolean;
 }) {
-  const { passage, wpm, startAtMs, enabled = true } = opts;
-  const [run, setRun] = useState(() => createRun(passage));
-  const [autoStart, setAutoStart] = useState<number | null>(null);
+  const { text, notes, startAtMs, enabled = true } = opts;
+  const [run, setRun] = useState(() => createRun(text));
+  const [elapsedMs, setElapsedMs] = useState(0);
 
   function reset() {
-    setAutoStart(null);
-    setRun(createRun(passage));
+    setElapsedMs(0);
+    setRun(createRun(text));
   }
 
   useEffect(() => {
     if (!enabled) return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      let press: Keypress | null = null;
-      if (e.key === "Backspace") press = { type: "backspace", atMs: performance.now() };
-      else if (e.key.length === 1) press = { type: "char", char: e.key, atMs: performance.now() };
-      if (!press) return;
-      e.preventDefault();
-      if (press.type === "char" && startAtMs === "auto") {
-        setAutoStart((prev) => prev ?? Date.now());
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        setRun((r) =>
+          r.cursor > activeWordStart(notes, r.cursor)
+            ? applyKeypress(r, { type: "backspace", atMs: performance.now() })
+            : r,
+        );
+        return;
       }
-      setRun((r) => applyKeypress(r, press));
+      if (e.key.length === 1) {
+        e.preventDefault();
+        setRun((r) => applyKeypress(r, { type: "char", char: e.key, atMs: performance.now() }));
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [enabled, startAtMs]);
+  }, [enabled, notes]);
 
-  const clock = startAtMs === "auto" ? autoStart : startAtMs;
   useEffect(() => {
-    if (clock === null) return;
+    if (startAtMs === null) return;
     let raf = 0;
     function tick() {
-      const elapsed = Date.now() - clock!;
-      if (elapsed > 0) setRun((r) => applyPace(r, paceIndexFor(wpm, elapsed)));
+      const elapsed = Date.now() - startAtMs!;
+      if (elapsed >= 0) {
+        setElapsedMs(elapsed);
+        setRun((r) => applyNotePace(r, notes, elapsed));
+      }
       raf = requestAnimationFrame(tick);
     }
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [wpm, clock]);
+  }, [startAtMs, notes]);
 
-  return { run, reset };
+  return { run, elapsedMs, reset };
 }
