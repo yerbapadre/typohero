@@ -56,6 +56,11 @@ export default {
     const ws = path.match(/^\/room\/([^/]+)\/ws$/);
     if (ws) return env.GAME_ROOM.getByName(ws[1]!).fetch(request);
 
+    if (path === "/api/gate" && request.method === "GET") {
+      const ok = await hasSession(request, env);
+      return json({ ok }, ok ? 200 : 401);
+    }
+
     if (path === "/api/gate" && request.method === "POST") {
       const { password } = (await request.json().catch(() => ({}))) as { password?: string };
       if (!password || !safeEqual(password, env.GATE_SECRET)) {
