@@ -5,6 +5,7 @@ export * from "./difficulty";
 export * from "./profile";
 export * from "./typing";
 export * from "./pace";
+export * from "./notes";
 export * from "./scoring";
 export * from "./quality";
 export * from "./room";
