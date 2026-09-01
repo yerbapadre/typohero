@@ -9,6 +9,13 @@ import {
   type StageGeom,
 } from "./geometry";
 import { createParticles, type Particles } from "./juice";
+import { pixelFont, noteFont } from "./fonts";
+import {
+  drawPerformer,
+  burstMood,
+  homeXPercent,
+  type PerformerMood,
+} from "./performers";
 import type { StageScene, StageLaneView } from "./scene";
 
 const PALETTE_REFRESH_MS = 500;
@@ -19,6 +26,10 @@ const RUNG_SPEED = 0.00022;
 const CULL_BEFORE = -0.03;
 const CULL_AFTER = 1.03;
 const STAR_MULTIPLIER = 2;
+// A miss flashes the lane briefly, but the frog stays sore about it for longer
+// — long enough to actually read the reaction from the back of the room.
+const SULK_MS = 1100;
+const RATTLED_BELOW = 0.55;
 
 type LaneMemory = {
   cursor: number;
@@ -26,15 +37,9 @@ type LaneMemory = {
   hitFlash: number;
   missFlash: number;
   shake: number;
+  sulk: number;
+  mood: PerformerMood;
 };
-
-function pixelFont(px: number): string {
-  return `700 ${px}px Silkscreen, monospace`;
-}
-
-function noteFont(px: number): string {
-  return `600 ${px}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-}
 
 function charColor(state: CharState, p: Palette): string {
   switch (state) {
@@ -62,7 +67,15 @@ export function createStageRenderer() {
   function laneMemory(lane: StageLaneView): LaneMemory {
     let m = memory.get(lane.id);
     if (!m) {
-      m = { cursor: lane.cursor, streak: lane.streak, hitFlash: 0, missFlash: 0, shake: 0 };
+      m = {
+        cursor: lane.cursor,
+        streak: lane.streak,
+        hitFlash: 0,
+        missFlash: 0,
+        shake: 0,
+        sulk: 0,
+        mood: "idle",
+      };
       memory.set(lane.id, m);
     }
     return m;
@@ -85,10 +98,22 @@ export function createStageRenderer() {
     ctx.clearRect(0, 0, w, h);
     drawBackdrop(ctx, g, palette, scene.bandQuality, clock);
 
-    for (const [i, lane] of scene.lanes.entries()) {
+    // Pass 1: fold this frame's typing into each lane's memory (hit/miss
+    // flashes, the frog's mood) before anything is drawn from it.
+    const memories = scene.lanes.map((lane, i) => {
       const mem = laneMemory(lane);
       trackLane(lane, mem, g, i, particles, palette, dt);
+      return mem;
+    });
 
+    // Pass 2: the band, upstage on the riser behind the highway.
+    for (const [i, lane] of scene.lanes.entries()) {
+      drawBandMember(ctx, lane, memories[i]!, g, i, scene.lanes.length, particles, palette, clock);
+    }
+
+    // Pass 3: the highway itself, drawn over the riser.
+    for (const [i, lane] of scene.lanes.entries()) {
+      const mem = memories[i]!;
       ctx.save();
       if (mem.shake > 0) {
         const k = mem.shake;
@@ -126,6 +151,7 @@ function trackLane(
   mem.hitFlash = Math.max(0, mem.hitFlash - dt);
   mem.missFlash = Math.max(0, mem.missFlash - dt);
   mem.shake = Math.max(0, mem.shake - dt * 0.03);
+  mem.sulk = Math.max(0, mem.sulk - dt);
 
   if (lane.waitingMs !== null) {
     mem.cursor = lane.cursor;
@@ -154,6 +180,7 @@ function trackLane(
         });
       } else {
         mem.missFlash = MISS_MS;
+        mem.sulk = SULK_MS;
         mem.shake = lane.you ? 9 : 5;
         particles.burst({
           x: cx,
@@ -171,8 +198,67 @@ function trackLane(
     mem.cursor = lane.cursor;
   }
 
-  if (streakBroke && mem.missFlash === 0) mem.missFlash = MISS_MS;
+  if (streakBroke && mem.missFlash === 0) {
+    mem.missFlash = MISS_MS;
+    mem.sulk = SULK_MS;
+  }
   mem.streak = lane.streak;
+}
+
+// The frog on the riser behind a lane. Its mood is read straight off the lane
+// the player is typing — nothing new comes over the wire for this.
+function drawBandMember(
+  ctx: CanvasRenderingContext2D,
+  lane: StageLaneView,
+  mem: LaneMemory,
+  g: StageGeom,
+  index: number,
+  laneCount: number,
+  particles: Particles,
+  p: Palette,
+  clock: number,
+): void {
+  const { mood, intensity } = moodFor(lane, mem);
+  const xPercent = lane.performer.xPercent ?? homeXPercent(index, laneCount);
+
+  if (mood !== mem.mood) {
+    burstMood(particles, p, g, mood, xPercent);
+    mem.mood = mood;
+  }
+
+  drawPerformer(
+    ctx,
+    g,
+    p,
+    {
+      image: lane.performer.image,
+      name: lane.name,
+      you: lane.you,
+      xPercent,
+      yPercent: lane.performer.yPercent,
+      facing: lane.performer.facing,
+      mood,
+      intensity,
+      quality: lane.quality,
+    },
+    clock,
+    index,
+  );
+}
+
+// Moods stack worst-first: a fresh miss overrides everything, then a lane
+// that's generally falling apart, then star power, then just playing.
+function moodFor(
+  lane: StageLaneView,
+  mem: LaneMemory,
+): { mood: PerformerMood; intensity: number } {
+  if (lane.waitingMs !== null) return { mood: "idle", intensity: 1 };
+  if (mem.sulk > 0) return { mood: "angry", intensity: mem.sulk / SULK_MS };
+  if (lane.quality < RATTLED_BELOW) {
+    return { mood: "rattled", intensity: (RATTLED_BELOW - lane.quality) / RATTLED_BELOW };
+  }
+  if (streakMultiplier(lane.streak) >= STAR_MULTIPLIER) return { mood: "hot", intensity: 1 };
+  return { mood: "playing", intensity: 1 };
 }
 
 function hasFault(chars: CharState[], from: number, to: number): boolean {
@@ -210,7 +296,7 @@ function drawBackdrop(
 
 // Hard-edged pleats across the back wall — a curtain, without a gradient.
 function drawCurtain(ctx: CanvasRenderingContext2D, g: StageGeom, p: Palette): void {
-  const top = g.yTop * 0.42;
+  const top = g.yRig + 16;
   for (let x = 0; x < g.w; x += 46) {
     ctx.fillStyle = alpha(p.ink, 0.55);
     ctx.fillRect(Math.round(x), top, 24, g.yTop - top);
@@ -265,7 +351,7 @@ function drawLightBeams(
   bandQuality: number,
   clock: number,
 ): void {
-  const rigY = g.yTop * 0.3;
+  const rigY = g.yRig;
   const energy = 0.4 + Math.max(0, Math.min(1, bandQuality)) * 0.6;
 
   for (const [i, at] of FIXTURES.entries()) {
@@ -300,7 +386,7 @@ function drawTruss(
   bandQuality: number,
   clock: number,
 ): void {
-  const y = Math.round(g.yTop * 0.3);
+  const y = Math.round(g.yRig);
   const half = 11;
 
   ctx.fillStyle = mix(p.bg, p.frame, 0.9);

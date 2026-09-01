@@ -96,6 +96,7 @@ function StageScreen({ roomId }: { roomId: string }) {
         frame={room.frame}
         song={song}
         youId={null}
+        positions={room.positions}
         crowd={room.crowd}
         controllableCrowd={false}
       />

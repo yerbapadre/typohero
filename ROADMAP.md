@@ -51,6 +51,13 @@ scripts/           offline Demucs stem-splitting pipeline
 - [x] **Crowd pit** — the crowd stands along the front of the stage for the whole show and can
       walk/jump their frog there (`useCrowdWalk`, shared with the lobby playground); two rows of
       NPC frogs keep the pit full, and the whole pit bobs faster as the band plays tighter.
+- [x] **Band on the riser** — the frog each player picked stands upstage behind their own lane and
+      can be walked around with the arrow keys *while typing* (letters, space and backspace all
+      belong to the run, so the arrows are the only free input). Position rides the existing
+      `move` → `positions` channel the lobby playground already used, so every machine sees the
+      same band. Moods are derived from the lane the player is already typing — star power, a
+      rattled slump under low quality, a red-washed recoil on a miss — so reactions cost no new
+      art and nothing extra on the wire.
 - [x] **Stage route** — `/stage/<code>` big screen joins as an *observer* (a spectator that takes
       no crowd frog): pre-show marquee with the band code and bill, then the live highway.
 

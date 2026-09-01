@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   buildNotes,
   notesText,
@@ -46,6 +46,14 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
   }
   useStemOutput({ enabled: me.audioOutput, songId: snap.songId, laneQuality });
 
+  // Your frog on the riser rides the same `move` channel the lobby playground
+  // uses, so every other machine sees you walk the stage as you type.
+  const onBandMove = useCallback(
+    (x: number, y: number, facing: -1 | 1) => room.send({ type: "move", x, y, facing }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   if (snap.phase === "results") {
     return <MultiResults members={snap.members} frame={room.frame} youId={room.playerId} />;
   }
@@ -58,6 +66,8 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
       song={song}
       youId={room.playerId}
       local={{ run }}
+      positions={room.positions}
+      onBandMove={onBandMove}
       crowd={room.crowd}
       controllableCrowd={false}
     />

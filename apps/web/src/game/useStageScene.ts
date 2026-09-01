@@ -15,6 +15,9 @@ import {
   type TypingRun,
 } from "@typohero/engine";
 import type { StageScene, StageLaneView } from "../render/stage/scene";
+import type { Position } from "../net/useRoom";
+import type { WalkState } from "../game/walk";
+import { frogById } from "../characters";
 
 export type LocalLane = { run: TypingRun };
 
@@ -28,8 +31,12 @@ export function useStageScene(opts: {
   youId: string | null;
   travelMs: number;
   local?: LocalLane | null;
+  positions: Record<string, Position>;
+  // The local player's frog, read straight off the walker each frame so
+  // running around the riser never re-renders React.
+  localWalk?: () => WalkState | null;
 }): () => StageScene {
-  const { snapshot, frame, song, youId, travelMs, local } = opts;
+  const { snapshot, frame, song, youId, travelMs, local, positions, localWalk } = opts;
 
   const shape = snapshot.members
     .map((m) => `${m.id}:${m.connected ? 1 : 0}:${m.instrument ?? ""}:${m.passageId ?? ""}:${m.difficulty}`)
@@ -44,6 +51,7 @@ export function useStageScene(opts: {
         id: m.id,
         name: m.name,
         instrument: m.instrument!,
+        image: frogById(m.character?.faceId)?.image ?? null,
         notes,
         textLength: notesText(passage.content).length,
         cueMs: song ? laneFirstActiveMs(song, m.instrument!) : 0,
@@ -62,6 +70,7 @@ export function useStageScene(opts: {
       const laneStart = startedAt === null ? null : startedAt + src.cueMs;
       const waitingMs = laneStart === null ? 0 : laneStart > now ? laneStart - now : null;
       const run = you ? local?.run : undefined;
+      const at = (you ? localWalk?.() : null) ?? positions[src.id] ?? null;
 
       return {
         id: src.id,
@@ -77,6 +86,12 @@ export function useStageScene(opts: {
         streak: run ? run.streak : (stat?.streak ?? 0),
         points: run ? run.points : (stat?.points ?? 0),
         progress: stat?.progress ?? 0,
+        performer: {
+          image: src.image,
+          xPercent: at ? at.x : null,
+          yPercent: at ? at.y : 0,
+          facing: (at?.facing ?? 1) < 0 ? -1 : 1,
+        },
       };
     });
 
