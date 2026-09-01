@@ -90,6 +90,9 @@ scripts/           offline Demucs stem-splitting pipeline
 - [ ] **Content screens** — song picker, passage library, character customization (D1-backed).
 - [ ] **D1 seed** — script to upsert `song.json` manifests into the D1 catalog.
 - [ ] **Miss stinger** — discrete "clunk" on error, on top of continuous degradation.
+- [ ] **Rhythm mode** — type letters on the song's rhythm instead of words on a WPM pace, with
+      timing-graded scoring. Scoped in `docs/rhythm-mode.md`; needs decisions on rhythm source,
+      content length, and show audio topology before Phase 1.
 - [ ] **Profiles** — single-player stats persisted to D1.
 - [ ] **Stems → R2** — move real song stems to a private R2 bucket (kept out of the public repo).
 - [ ] **`index.html` no-cache** — serve the SPA entry uncached so deploys show up instantly (hashed assets stay immutable).
