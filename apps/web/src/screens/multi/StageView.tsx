@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
-import { bandQuality, centerOn, type RoomState, type LiveStat, type Song } from "@typohero/engine";
+import {
+  bandQuality,
+  centerOn,
+  type RoomState,
+  type LiveStat,
+  type Song,
+  type ChartFile,
+  type RhythmRun,
+} from "@typohero/engine";
 import type { CrowdMember, Position } from "../../net/useRoom";
 import { StageCanvas } from "../../render/StageCanvas";
 import { TRAVEL_MS } from "../../render/stage/scene";
@@ -20,7 +28,9 @@ export function StageView({
   frame,
   song,
   youId,
+  chart,
   local,
+  rhythmRun,
   positions,
   onBandMove,
   crowd,
@@ -35,7 +45,9 @@ export function StageView({
   frame: Record<string, LiveStat>;
   song: Song | null;
   youId: string | null;
+  chart?: ChartFile | null;
   local?: LocalLane | null;
+  rhythmRun?: RhythmRun | null;
   positions: Record<string, Position>;
   // Only a band member gets this — it steers their frog on the riser.
   onBandMove?: (x: number, y: number, facing: -1 | 1) => void;
@@ -67,6 +79,7 @@ export function StageView({
     song,
     youId,
     travelMs: TRAVEL_MS,
+    chart,
     local,
     positions,
     localWalk: getWalk,
@@ -115,6 +128,8 @@ export function StageView({
           </div>
         )}
 
+        {rhythmRun && <JudgmentFlash run={rhythmRun} />}
+
         {youLane >= 0 && !!onBandMove && (
           <div className="pointer-events-none absolute bottom-2 right-3 text-[9px] uppercase tracking-widest text-cabinet-text/30">
             ← → walk the stage · ↑ jump
@@ -139,3 +154,44 @@ export function StageView({
 }
 
 function noop() {}
+
+const JUDGMENT_LABEL: Record<string, string> = {
+  perfect: "PERFECT",
+  great: "GREAT",
+  good: "GOOD",
+};
+
+// The last note you hit, and whether you were ahead of or behind the beat. Keyed
+// on the note index so React replays the animation for every new hit.
+function JudgmentFlash({ run }: { run: RhythmRun }) {
+  const hit = run.lastHit;
+  if (!hit) return null;
+
+  const wrong = hit.typed !== hit.expected;
+  const label = wrong ? "WRONG" : JUDGMENT_LABEL[hit.judgment];
+  const drift = Math.round(hit.deltaMs);
+  const timing = hit.judgment === "perfect" ? "" : drift < 0 ? "early" : "late";
+
+  return (
+    <div
+      key={hit.index}
+      className="frog-in-right pointer-events-none absolute inset-x-0 top-6 grid place-items-center"
+    >
+      <div
+        className={
+          "border-2 px-4 py-1 text-center text-sm uppercase tracking-[0.3em] " +
+          (wrong
+            ? "border-red-500 bg-black/70 text-red-400"
+            : "border-cabinet-accent bg-black/70 text-cabinet-accent")
+        }
+      >
+        {label}
+        {timing && (
+          <span className="ml-2 text-[10px] tracking-widest text-cabinet-text/50">
+            {Math.abs(drift)}ms {timing}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

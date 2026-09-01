@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { RoomState } from "@typohero/engine";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
+import { useChart } from "../net/useChart";
 import type { CrowdMember } from "../net/useRoom";
 import { CabinetPage } from "../ui/CabinetPage";
 import { StageView } from "../screens/multi/StageView";
@@ -74,6 +75,7 @@ function StageScreen({ roomId }: { roomId: string }) {
   const room = useRoom(roomId, "stage", true, undefined, undefined, true);
   const songs = useSongs();
   const snap = room.snapshot;
+  const chartFile = useChart(snap?.songId ?? null);
   const song = songs?.find((s) => s.id === snap?.songId) ?? null;
 
   if (!snap) {
@@ -95,6 +97,7 @@ function StageScreen({ roomId }: { roomId: string }) {
         snapshot={snap}
         frame={room.frame}
         song={song}
+        chart={chartFile}
         youId={null}
         positions={room.positions}
         crowd={room.crowd}
