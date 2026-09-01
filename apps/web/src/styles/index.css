@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --cab-bg: #12100a;
+    --cab-accent: #f5b53f;
+    --cab-ink: #1a1305;
+    --cab-frame: #2a2212;
+    --cab-shadow: #6b4e18;
+    --cab-btn: #1a1710;
+    --cab-border: #322a18;
+    --cab-text: #ecdcb4;
+  }
   html,
   body,
   #root {
@@ -50,16 +60,4 @@
 }
 .frog-bob {
   animation: frog-bob 4s ease-in-out infinite;
-}
-@keyframes lily-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-7px);
-  }
-}
-.lily-float {
-  animation: lily-float 5s ease-in-out infinite;
 }

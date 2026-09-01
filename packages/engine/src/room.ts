@@ -4,7 +4,7 @@ import type { Character } from "./profile";
 
 export type Mode = "single" | "multi";
 
-export type RoomPhase = "lobby" | "countdown" | "playing" | "results";
+export type RoomPhase = "lobby" | "setup" | "countdown" | "playing" | "results";
 
 export type Member = {
   id: string;
@@ -35,6 +35,8 @@ export type RoomState = {
 export type RoomAction =
   | { t: "join"; id: string; name: string; character?: Character }
   | { t: "leave"; id: string }
+  | { t: "lockIn"; id: string }
+  | { t: "backToLobby"; id: string }
   | { t: "updateProfile"; id: string; name: string; character: Character }
   | { t: "pickInstrument"; id: string; instrument: InstrumentLane }
   | { t: "pickPassage"; id: string; passageId: string }
@@ -114,6 +116,23 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
         hostId = members.find((m) => m.connected)?.id ?? null;
       }
       return { ...state, members, hostId };
+    }
+
+    case "lockIn": {
+      if (!isHost(state, action.id) || state.phase !== "lobby") return state;
+      return { ...state, phase: "setup" };
+    }
+
+    case "backToLobby": {
+      if (!isHost(state, action.id) || state.phase !== "setup") return state;
+      return {
+        ...state,
+        phase: "lobby",
+        songProposal: null,
+        songId: null,
+        songDurationMs: null,
+        members: state.members.map((m) => ({ ...m, ready: false })),
+      };
     }
 
     case "updateProfile":

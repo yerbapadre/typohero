@@ -1,5 +1,5 @@
 import type { ClientMsg, ServerMsg } from "@typohero/protocol";
-import type { RoomState, LiveStat } from "@typohero/engine";
+import type { RoomState, LiveStat, Character } from "@typohero/engine";
 
 function wsBase(): string {
   return import.meta.env.DEV ? "ws://localhost:8799" : `wss://${location.host}`;
@@ -12,6 +12,8 @@ export type RoomEvents = {
   onFrame?: (stats: Record<string, LiveStat>, atMs: number) => void;
   onCountdown?: (startAtEpochMs: number) => void;
   onResults?: (final: Record<string, LiveStat>) => void;
+  onCrowd?: (names: string[]) => void;
+  onPositions?: (players: Record<string, { x: number; y: number; facing: number }>) => void;
   onWelcome?: (playerId: string) => void;
   onOpen?: () => void;
   onClose?: () => void;
@@ -26,6 +28,7 @@ export class RoomClient {
     private name: string,
     private events: RoomEvents,
     private spectate = false,
+    private character?: Character,
   ) {}
 
   connect(): void {
@@ -33,10 +36,10 @@ export class RoomClient {
     this.ws = ws;
     ws.addEventListener("open", () => {
       if (this.spectate) {
-        this.send({ type: "spectate" });
+        this.send({ type: "spectate", name: this.name });
       } else {
         const reconnectToken = localStorage.getItem(this.tokenKey()) ?? undefined;
-        this.send({ type: "join", name: this.name, reconnectToken });
+        this.send({ type: "join", name: this.name, character: this.character, reconnectToken });
       }
       this.events.onOpen?.();
     });
@@ -67,6 +70,12 @@ export class RoomClient {
         break;
       case "results":
         this.events.onResults?.(msg.final);
+        break;
+      case "crowd":
+        this.events.onCrowd?.(msg.names);
+        break;
+      case "positions":
+        this.events.onPositions?.(msg.players);
         break;
     }
   }

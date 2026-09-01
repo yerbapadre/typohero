@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frog City — design lab v2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background: #0a0a0b; color: #eaeaea;
+        font-family: "Silkscreen", monospace; padding: 40px 24px 120px;
+      }
+      .lab-head { max-width: 1100px; margin: 0 auto 32px; font-family: "Silkscreen"; }
+      .lab-head h1 { font-size: 16px; color: #7cf07f; margin-bottom: 12px; }
+      .lab-head p { font-size: 11px; color: #888; line-height: 1.9; }
+      .grid {
+        max-width: 1180px; margin: 0 auto;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px;
+      }
+      .cell { border: 1px solid #222; }
+      .cell .tag {
+        font-size: 10px; color: #7cf07f; padding: 8px 12px; border-bottom: 1px solid #222;
+        letter-spacing: 1px; display: flex; justify-content: space-between; background: #0d0d0e;
+      }
+      .cell .tag span:last-child { color: #666; }
+
+      /* base V8 language ------------------------------------------------ */
+      .screen {
+        --accent: #7cf07f;
+        --accent-ink: #0d100d;
+        --frame: #1f2a1f;
+        --shadow: #1f2a1f;
+        --bg: #0d100d;
+        --btn-bg: #121712;
+        --btn-border: #24302a;
+        --btn-text: #cfe8cf;
+        --title2: var(--accent);
+        aspect-ratio: 4 / 5; background: var(--bg); color: var(--btn-text);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 16px; padding: 26px; position: relative; overflow: hidden;
+      }
+      .frog { width: 118px; height: auto; display: block; user-select: none; }
+      .title { font-weight: 700; font-size: 22px; letter-spacing: 1px; color: #fff; text-align: center; line-height: 1.35; }
+      .title b { color: var(--title2); }
+      .stack { border: 3px solid var(--frame); background: rgba(0,0,0,.15); padding: 14px; width: 100%; max-width: 262px;
+        box-shadow: 6px 6px 0 var(--shadow); }
+      .menu { display: flex; flex-direction: column; gap: 7px; }
+      .menu button {
+        cursor: pointer; width: 100%; font-family: "Silkscreen"; font-size: 11px;
+        color: var(--btn-text); background: var(--btn-bg); border: 2px solid var(--btn-border);
+        padding: 11px; text-transform: uppercase; letter-spacing: 1px;
+      }
+      .menu button.on { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+      .menu button:hover { border-color: var(--accent); }
+      .divider { height: 2px; background: var(--frame); margin: 3px 0; }
+
+      /* R1 · GREEN CLASSIC (base + red divider accent) */
+      .r1 { --accent: #7cf07f; --frame: #223022; --shadow: #223022; }
+      .r1 .divider { background: #e0563e; }
+
+      /* R2 · AMBER CABINET */
+      .r2 { --accent: #f5b53f; --accent-ink: #1a1305; --frame: #2a2212; --shadow: #6b4e18;
+            --bg: #12100a; --btn-bg: #1a1710; --btn-border: #322a18; --btn-text: #ecdcb4; }
+
+      /* R3 · POND CYAN */
+      .r3 { --accent: #45d6d0; --accent-ink: #04201f; --frame: #133030; --shadow: #16403f;
+            --bg: #0a1414; --btn-bg: #0f1c1c; --btn-border: #1c3231; --btn-text: #bfe9e6; }
+
+      /* R4 · CORAL PUNCH (colored frame + green button) */
+      .r4 { --accent: #7cf07f; --frame: #4a1f1a; --shadow: #e0563e; --bg: #120c0b;
+            --btn-bg: #17100f; --btn-border: #3a201d; --btn-text: #f0d3cd; --title2: #e0563e; }
+
+      /* R5 · VIOLET NIGHT */
+      .r5 { --accent: #b98cff; --accent-ink: #150a26; --frame: #241633; --shadow: #3a2455;
+            --bg: #0d0a14; --btn-bg: #140f1e; --btn-border: #271c38; --btn-text: #ddd0f2; }
+
+      /* R6 · ARCADE MULTI (each button its own color) */
+      .r6 { --accent: #7cf07f; --frame: #24302a; --shadow: #24302a; }
+      .r6 .menu button:nth-child(1) { background: #7cf07f; color: #0d100d; border-color: #7cf07f; }
+      .r6 .menu button:nth-child(2) { color: #4fd6e0; border-color: #234040; }
+      .r6 .menu button:nth-child(2):hover { border-color: #4fd6e0; }
+      .r6 .menu button:nth-child(4) { color: #f5b53f; border-color: #3a3016; }
+      .r6 .menu button:nth-child(4):hover { border-color: #f5b53f; }
+      .r6 .title b { color: #4fd6e0; }
+
+      /* R7 · SWAMP WARM (olive/orange, matches frog paper) */
+      .r7 { --accent: #e88a3c; --accent-ink: #1c1206; --frame: #2c2a16; --shadow: #3f3a1a;
+            --bg: #14140c; --btn-bg: #1a1a10; --btn-border: #2e2e1c; --btn-text: #d9d6b0; --title2: #a7c449; }
+
+      /* R8 · TOXIC LIME (green on green, high energy) */
+      .r8 { --accent: #c8ff3c; --accent-ink: #101a02; --frame: #1e3312; --shadow: #2f5019;
+            --bg: #0c1207; --btn-bg: #111a0b; --btn-border: #223315; --btn-text: #d7f0b4; }
+      .r8 .title { color: #c8ff3c; }
+      .r8 .title b { color: #fff; }
+    </style>
+  </head>
+  <body>
+    <div class="lab-head">
+      <h1>FROG CITY // DESIGN LAB v2</h1>
+      <p>8 riffs on V8. Same language: Silkscreen, pixel frame, hard offset shadow, boxed buttons.<br />More color, still dark + lo-fi. Title under frog, untilted, no glow. Pick one (or mix palettes).</p>
+    </div>
+
+    <div class="grid">
+      <div class="cell"><div class="tag"><span>R1 · GREEN CLASSIC</span><span>red divider</span></div>
+        <div class="screen r1"><img class="frog" src="/frogs/boxer.png" /><div class="title">FROG CITY</div>
+          <div class="stack"><div class="menu">
+            <button class="on">Single Player</button><button>Multiplayer</button>
+            <div class="divider"></div><button>Join the Crowd</button></div></div></div></div>
+
+      <div class="cell"><div class="tag"><span>R2 · AMBER CABINET</span><span>arcade gold</span></div>
+        <div class="screen r2"><img class="frog" src="/frogs/gunslinger.png" /><div class="title">FROG <b>CITY</b></div>
+          <div class="stack"><div class="menu">
+            <button class="on">Single Player</button><button>Multiplayer</button>
+            <div class="divider"></div><button>Join the Crowd</button></div></div></div></div>
+
+      <div class="cell"><div class="tag"><span>R3 · POND CYAN</span><span>teal</span></div>
+        <div class="screen r3"><img class="frog" src="/frogs/wizard.png" /><div class="title">FROG <b>CITY</b></div>
+          <div class="stack"><div class="menu">
+            <button class="on">Single Player</button><button>Multiplayer</button>
+            <div class="divider"></div><button>Join the Crowd</button></div></div></div></div>
+
+      <div class="cell"><div class="tag"><span>R4 · CORAL PUNCH</span><span>red frame + green</span></div>
+        <div class="screen r4"><img class="frog" src="/frogs/boxer.png" /><div class="title">FROG <b>CITY</b></div>
+          <div class="stack"><div class="menu">
+            <button class="on">Single Player</button><button>Multiplayer</button>
+            <div class="divider"></div><button>Join the Crowd</button></div></div></div></div>
+
+      <div class="cell"><div class="tag"><span>R5 · VIOLET NIGHT</span><span>purple</span></div>
+        <div class="screen r5"><img class="frog" src="/frogs/wizard.png" /><div class="title">FROG <b>CITY</b></div>
+          <div class="stack"><div class="menu">
+            <button class="on">Single Player</button><button>Multiplayer</button>
+            <div class="divider"></div><button>Join the Crowd</button></div></div></div></div>
+
+      <div class="cell"><div class="tag"><span>R6 · ARCADE MULTI</span><span>per-button color</span></div>
+        <div class="screen r6"><img class="frog" src="/frogs/gunslinger.png" /><div class="title">FROG <b>CITY</b></div>
+          <div class="stack"><div class="menu">
+            <button class="on">Single Player</button><button>Multiplayer</button>
+            <button>Join the Crowd</button></div></div></div></div>
+
+      <div class="cell"><div class="tag"><span>R7 · SWAMP WARM</span><span>olive/orange</span></div>
+        <div class="screen r7"><img class="frog" src="/frogs/boxer.png" /><div class="title">FROG <b>CITY</b></div>
+          <div class="stack"><div class="menu">
+            <button class="on">Single Player</button><button>Multiplayer</button>
+            <div class="divider"></div><button>Join the Crowd</button></div></div></div></div>
+
+      <div class="cell"><div class="tag"><span>R8 · TOXIC LIME</span><span>green on green</span></div>
+        <div class="screen r8"><img class="frog" src="/frogs/gunslinger.png" /><div class="title">FROG <b>CITY</b></div>
+          <div class="stack"><div class="menu">
+            <button class="on">Single Player</button><button>Multiplayer</button>
+            <div class="divider"></div><button>Join the Crowd</button></div></div></div></div>
+    </div>
+  </body>
+</html>

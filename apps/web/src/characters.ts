@@ -12,12 +12,12 @@ export type Frog = {
 
 export const FROGS: Frog[] = [
   {
-    id: "gunslinger",
-    name: "The Gunslinger",
-    image: "/frogs/gunslinger.png",
-    tagline: "Fastest keys in the west.",
+    id: "win-the-day",
+    name: "Claudius Coder",
+    image: "/frogs/boxer.png",
+    tagline: "An unstoppable force — just keeps swinging.",
     description:
-      "Quick on the draw and quicker on the keyboard. Rides in, types clean, and is gone before the note even lands.",
+      "Not the brightest of the bunch, but a real bruiser. A jumper with thick skin (impervious to verbal abuse), he can riff at unbelievable speeds. Overwhelming force at max effort — until you run out of usage.",
     accent: "text-amber-400",
     stats: [
       { label: "Speed", value: 5 },
@@ -26,12 +26,12 @@ export const FROGS: Frog[] = [
     ],
   },
   {
-    id: "boxer",
-    name: "The Bruiser",
-    image: "/frogs/boxer.png",
-    tagline: "Types with his whole bodyweight.",
+    id: "demand-excellence",
+    name: "Leonard The Poet",
+    image: "/frogs/gunslinger.png",
+    tagline: "A cracked hand — hasn't missed a shot yet.",
     description:
-      "Every keystroke lands like a hook. Slow to start, but once the combo is rolling nothing knocks him off rhythm.",
+      "Don't let his looks fool you, this frog is as friendly as they come. Still a deadly killer though, with sharp eyes, steady hands, and unfailing aim. Let him cook.",
     accent: "text-red-400",
     stats: [
       { label: "Power", value: 5 },
@@ -40,12 +40,12 @@ export const FROGS: Frog[] = [
     ],
   },
   {
-    id: "wizard",
-    name: "The Conjurer",
+    id: "systems-thinking",
+    name: "Walling Jacobs",
     image: "/frogs/wizard.png",
-    tagline: "Turns typos into frogspells.",
+    tagline: "Mysterious fellow — elevates his bandmates' base stats.",
     description:
-      "Ancient, unbothered, precise. Misses bend to his will — the longer the passage, the stronger his hex.",
+      "Solves each word fast, then zooms out to see how it fits the whole passage. Calm, deliberate, always three notes ahead of everyone else.",
     accent: "text-emerald-400",
     stats: [
       { label: "Focus", value: 5 },

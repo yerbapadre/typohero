@@ -24,6 +24,7 @@ export type Song = {
   artist: string;
   durationMs: number;
   lanes: SongLane[];
+  cover?: string;
 };
 
 export function laneOf(song: Song, lane: InstrumentLane): SongLane | undefined {

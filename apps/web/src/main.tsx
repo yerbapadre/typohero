@@ -3,7 +3,10 @@ import { createRoot } from "react-dom/client";
 import { Stage } from "./routes/Stage";
 import { App } from "./App";
 import { Gate } from "./ui/Gate";
+import { installAudioUnlock } from "./audio/unlock";
 import "./styles/index.css";
+
+installAudioUnlock();
 
 const isStage = window.location.pathname.startsWith("/stage");
 

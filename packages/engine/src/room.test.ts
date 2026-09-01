@@ -194,3 +194,28 @@ describe("lifecycle", () => {
     expect(s.members[0]!.ready).toBe(false);
   });
 });
+
+describe("lock in / setup phase", () => {
+  it("host lockIn moves lobby to setup", () => {
+    const s = run(lobbyWith("a", "b"), { t: "lockIn", id: "a" });
+    expect(s.phase).toBe("setup");
+  });
+
+  it("non-host cannot lock in", () => {
+    const s = run(lobbyWith("a", "b"), { t: "lockIn", id: "b" });
+    expect(s.phase).toBe("lobby");
+  });
+
+  it("backToLobby clears the picked song", () => {
+    let s = run(
+      lobbyWith("a"),
+      { t: "lockIn", id: "a" },
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
+    );
+    expect(s.phase).toBe("setup");
+    expect(s.songId).toBe("chocolate");
+    s = run(s, { t: "backToLobby", id: "a" });
+    expect(s.phase).toBe("lobby");
+    expect(s.songId).toBeNull();
+  });
+});
