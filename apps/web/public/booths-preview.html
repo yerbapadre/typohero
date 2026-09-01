@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pit booths — design sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Cabinet palette + Silkscreen, mirrored from the app's tailwind.config.ts
+      // and the frog-cabinet-ui skill so this sandbox reads identically.
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              cabinet: {
+                bg: "#12100a",
+                accent: "#f5b53f",
+                ink: "#1a1305",
+                frame: "#2a2212",
+                shadow: "#6b4e18",
+                btn: "#1a1710",
+                border: "#322a18",
+                text: "#ecdcb4",
+              },
+            },
+            fontFamily: { pixel: ['"Silkscreen"', "monospace"] },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* Same head-bob the frogs use in-app. */
+      @keyframes frog-bob {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+      }
+      .frog-bob { animation: frog-bob 1.4s ease-in-out infinite; }
+      body { image-rendering: pixelated; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-cabinet-bg p-8 font-pixel text-cabinet-text">
+    <div class="mx-auto max-w-5xl">
+      <h1 class="mb-1 text-lg uppercase tracking-[0.3em] text-cabinet-accent">Pit booths</h1>
+      <p class="mb-6 font-mono text-[12px] text-cabinet-text/50">
+        design sandbox — mirrors CrowdFloor.tsx. edit inline, refresh to iterate.
+      </p>
+
+      <!-- The pit, same chrome as CrowdFloor -->
+      <div
+        class="relative h-[280px] overflow-hidden border-t-[3px] border-cabinet-accent bg-black/40"
+        style="background: #16130b"
+        id="pit"
+      >
+        <!-- footlights -->
+        <div class="absolute -top-1 left-0 right-0 flex justify-between px-2" id="footlights"></div>
+
+        <!-- floor -->
+        <div
+          class="pointer-events-none absolute bottom-0 left-0 right-0 border-t-2 border-cabinet-frame bg-cabinet-frame/30"
+          style="height: 9%"
+        ></div>
+
+        <!-- BOOTHS -->
+        <!-- Merch -->
+        <div class="pointer-events-none absolute -translate-x-1/2" style="left: 20%; bottom: 9%">
+          <div class="flex flex-col items-center">
+            <!-- marquee -->
+            <div class="flex flex-col items-center">
+              <div class="w-44 border-[3px] border-cabinet-accent bg-cabinet-btn px-3 py-1 text-center shadow-[3px_3px_0_#6b4e18]">
+                <div class="twinkle flex justify-center gap-1"></div>
+                <div class="my-1 text-sm font-bold uppercase tracking-[0.25em] text-cabinet-accent md:text-base">Merch</div>
+                <div class="twinkle flex justify-center gap-1"></div>
+              </div>
+              <div class="h-2 w-1.5 bg-cabinet-frame"></div>
+            </div>
+            <!-- booth -->
+            <div class="flex w-44 flex-col items-center gap-1 border-x-[3px] border-t-[3px] border-cabinet-frame bg-black/40 px-2 pt-1.5">
+              <!-- CDs -->
+              <div class="flex gap-1.5" id="cds"></div>
+              <!-- shirts on a rod -->
+              <div class="w-full">
+                <div class="h-0.5 w-full bg-cabinet-frame"></div>
+                <div class="flex justify-around" id="shirts"></div>
+              </div>
+              <!-- counter + stuffed frog -->
+              <div class="mt-0.5 flex w-full items-end justify-center border-t-2 border-cabinet-frame pt-1">
+                <img src="frogs/crowd.png" alt="" draggable="false" class="h-9 w-auto object-contain" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recs -->
+        <div class="pointer-events-none absolute -translate-x-1/2" style="left: 50%; bottom: 9%">
+          <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center">
+              <div class="w-36 border-[3px] border-cabinet-accent bg-cabinet-btn px-3 py-1 text-center shadow-[3px_3px_0_#6b4e18]">
+                <div class="twinkle flex justify-center gap-1"></div>
+                <div class="my-1 text-sm font-bold uppercase tracking-[0.25em] text-cabinet-accent md:text-base">Recs</div>
+                <div class="twinkle flex justify-center gap-1"></div>
+              </div>
+              <div class="h-2 w-1.5 bg-cabinet-frame"></div>
+            </div>
+            <div class="flex w-36 flex-col items-center gap-1 border-x-[3px] border-t-[3px] border-cabinet-frame bg-black/40 px-2 pt-1.5">
+              <div class="flex w-full justify-around" id="recs"></div>
+              <div class="mt-0.5 w-full border-t-2 border-cabinet-frame pt-1">
+                <span class="mx-auto mb-0.5 block h-4 w-4 border border-black bg-cabinet-text/70"></span>
+                <div class="mx-auto h-1.5 w-20 border border-black bg-cabinet-frame"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bar -->
+        <div class="pointer-events-none absolute -translate-x-1/2" style="left: 80%; bottom: 9%">
+          <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center">
+              <div class="w-52 border-[3px] border-cabinet-accent bg-cabinet-btn px-3 py-1 text-center shadow-[3px_3px_0_#6b4e18]">
+                <div class="twinkle flex justify-center gap-1"></div>
+                <div class="my-1 text-sm font-bold uppercase tracking-[0.25em] text-cabinet-accent md:text-base">Bar</div>
+                <div class="twinkle flex justify-center gap-1"></div>
+              </div>
+              <div class="h-2 w-1.5 bg-cabinet-frame"></div>
+            </div>
+            <div class="flex w-52 flex-col items-center gap-1 border-x-[3px] border-t-[3px] border-cabinet-frame bg-black/40 px-2 pt-1.5">
+              <!-- back shelf of blocky bottles -->
+              <div class="flex items-end gap-1" id="bottles"></div>
+              <!-- drinks on the bar -->
+              <div class="mt-1 flex w-full items-end justify-center gap-2.5">
+                <!-- beer mug -->
+                <div class="flex flex-col items-center">
+                  <span class="h-1.5 w-6 border border-black bg-cabinet-text/80"></span>
+                  <div class="relative h-6 w-6 border border-black bg-cabinet-accent/80">
+                    <span class="absolute inset-x-0 top-0 h-1 bg-white/25"></span>
+                    <span class="absolute -right-1.5 top-1.5 h-3 w-1.5 border border-black bg-cabinet-accent/80"></span>
+                  </div>
+                </div>
+                <!-- highball soda -->
+                <div class="relative flex flex-col items-center">
+                  <span class="absolute -top-2 left-1/2 h-3 w-0.5 -translate-x-1/2 bg-cabinet-text/70"></span>
+                  <div class="relative h-7 w-4 border border-black bg-white/10">
+                    <span class="absolute inset-x-0 bottom-0 h-4 bg-cabinet-accent/60"></span>
+                    <span class="absolute left-0 top-0 h-full w-0.5 bg-white/30"></span>
+                  </div>
+                </div>
+                <!-- diet coke -->
+                <div class="flex flex-col items-center">
+                  <span class="h-0.5 w-2 border border-black bg-neutral-500"></span>
+                  <div class="relative h-7 w-3.5 border border-black bg-neutral-300">
+                    <span class="absolute inset-x-0 top-2.5 h-2 bg-red-600"></span>
+                    <span class="absolute left-0 top-0 h-full w-0.5 bg-white/50"></span>
+                  </div>
+                </div>
+              </div>
+              <!-- bar top with tap handles -->
+              <div class="w-full border-t-2 border-cabinet-frame pt-1">
+                <div class="relative mx-auto h-6 w-44 border-2 border-cabinet-frame bg-cabinet-btn">
+                  <span class="absolute -top-3 left-3 h-3 w-1.5 border border-black bg-cabinet-accent"></span>
+                  <span class="absolute -top-3 left-6 h-3 w-1.5 border border-black bg-cabinet-text/50"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- a controllable frog + ENTER prompt, parked in front of Merch -->
+        <div class="pointer-events-none absolute z-20 flex -translate-x-1/2 flex-col items-center" style="left: 20%; bottom: calc(9% + 158px)">
+          <div class="frog-bob border-2 border-black bg-cabinet-accent px-1.5 py-0.5 text-[8px] uppercase tracking-widest text-cabinet-ink shadow-[2px_2px_0_#6b4e18]">Enter</div>
+          <span class="text-[10px] leading-none text-cabinet-accent">▾</span>
+        </div>
+        <div class="absolute z-20 flex -translate-x-1/2 flex-col items-center" style="left: 20%; bottom: 9%">
+          <span class="mb-1 border border-cabinet-accent bg-cabinet-accent px-1 py-0.5 text-[8px] uppercase tracking-widest text-cabinet-ink">you</span>
+          <img src="frogs/crowd.png" alt="" class="h-[74px] w-auto" style="transform: scaleX(-1)" />
+        </div>
+      </div>
+
+      <!-- Interact panel preview (toggle) -->
+      <div class="mt-4 flex items-center gap-3">
+        <button id="toggle" class="border-2 border-cabinet-border bg-cabinet-btn px-4 py-2 text-[10px] uppercase tracking-widest text-cabinet-text hover:border-cabinet-accent">toggle interact panel</button>
+        <span class="font-mono text-[11px] text-cabinet-text/40">spots at x = 20 / 50 / 80%</span>
+      </div>
+
+      <div id="panel" class="mt-4 hidden">
+        <div class="relative grid h-[160px] place-items-center border-[3px] border-cabinet-frame bg-black/50">
+          <div class="border-[3px] border-cabinet-accent bg-cabinet-bg px-8 py-6 text-center shadow-[8px_8px_0_#6b4e18]">
+            <div class="text-sm uppercase tracking-widest text-cabinet-accent">Merch</div>
+            <div class="mt-2 font-mono text-[11px] lowercase tracking-wide text-cabinet-text/70">coming soon</div>
+            <button class="mt-4 border-2 border-cabinet-border bg-cabinet-btn px-4 py-2 text-[10px] uppercase tracking-widest text-cabinet-text hover:border-cabinet-accent">Esc · close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Footlights strip
+      const fl = document.getElementById("footlights");
+      for (let i = 0; i < 44; i++) {
+        const s = document.createElement("span");
+        s.className = "h-2 w-2 border border-black " + (i % 2 === 0 ? "bg-cabinet-accent" : "bg-cabinet-shadow");
+        fl.appendChild(s);
+      }
+      // Twinkle strings
+      document.querySelectorAll(".twinkle").forEach((row) => {
+        for (let i = 0; i < 9; i++) {
+          const s = document.createElement("span");
+          s.className = "h-1.5 w-1.5 border border-black animate-pulse " + (i % 2 === 0 ? "bg-cabinet-accent" : "bg-cabinet-text/30");
+          s.style.animationDelay = ((i * 170) % 900) + "ms";
+          s.style.animationDuration = "1.5s";
+          row.appendChild(s);
+        }
+      });
+      // CDs
+      const cds = document.getElementById("cds");
+      for (let i = 0; i < 4; i++) {
+        const w = document.createElement("span");
+        w.className = "relative block h-5 w-5 border border-black bg-cabinet-text/20";
+        w.innerHTML =
+          '<span class="absolute inset-1 border border-black bg-cabinet-accent/40"></span>' +
+          '<span class="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 bg-black"></span>';
+        cds.appendChild(w);
+      }
+      // Shirts
+      const shirtTones = ["bg-cabinet-accent/50", "bg-cabinet-text/40", "bg-cabinet-accent/30"];
+      const shirts = document.getElementById("shirts");
+      shirtTones.forEach((tone) => {
+        const d = document.createElement("div");
+        d.className = "relative mt-1 h-6 w-5";
+        d.innerHTML =
+          '<span class="absolute -left-1 top-0 h-2 w-2 border border-black ' + tone + '"></span>' +
+          '<span class="absolute -right-1 top-0 h-2 w-2 border border-black ' + tone + '"></span>' +
+          '<span class="absolute inset-x-0 top-0 h-full border border-black ' + tone + '"></span>' +
+          '<span class="absolute left-1/2 top-0 h-1 w-1.5 -translate-x-1/2 border border-black bg-black/40"></span>';
+        shirts.appendChild(d);
+      });
+      // Blocky bottles on the bar shelf
+      const bottleSpec = [
+        ["bg-cabinet-accent/70", "h-7"],
+        ["bg-[#3f7d3a]", "h-9"],
+        ["bg-cabinet-text/40", "h-6"],
+        ["bg-red-700/70", "h-8"],
+        ["bg-cabinet-accent/50", "h-9"],
+        ["bg-[#3f7d3a]", "h-6"],
+      ];
+      const bottles = document.getElementById("bottles");
+      bottleSpec.forEach(([tone, h]) => {
+        const d = document.createElement("div");
+        d.className = "flex flex-col items-center";
+        d.innerHTML =
+          '<span class="h-1.5 w-1 border border-black ' + tone + '"></span>' +
+          '<div class="relative w-2.5 border border-black ' + tone + " " + h + '">' +
+          '<span class="absolute inset-x-0 top-0 h-1 bg-white/15"></span></div>';
+        bottles.appendChild(d);
+      });
+      // Recs cards
+      const recTones = ["bg-cabinet-text/60", "bg-cabinet-accent/40", "bg-cabinet-text/50"];
+      const recs = document.getElementById("recs");
+      recTones.forEach((tone) => {
+        const d = document.createElement("div");
+        d.className = "relative h-8 w-6 border border-black " + tone;
+        d.innerHTML =
+          '<span class="absolute left-1/2 top-1 h-1 w-1 -translate-x-1/2 bg-black"></span>' +
+          '<span class="absolute inset-x-1 top-3 h-0.5 bg-black/40"></span>' +
+          '<span class="absolute inset-x-1 top-5 h-0.5 bg-black/40"></span>';
+        recs.appendChild(d);
+      });
+      // Panel toggle
+      const panel = document.getElementById("panel");
+      document.getElementById("toggle").addEventListener("click", () => panel.classList.toggle("hidden"));
+    </script>
+  </body>
+</html>
