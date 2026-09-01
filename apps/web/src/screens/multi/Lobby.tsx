@@ -104,7 +104,7 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
           </div>
           {room.crowd.length > 0 && (
             <div className="mt-3 text-[10px] uppercase tracking-widest text-cabinet-text/40">
-              👥 {room.crowd.length} watching · {room.crowd.join(", ")}
+              👥 {room.crowd.length} watching · {room.crowd.map((c) => c.name).join(", ")}
             </div>
           )}
         </Panel>
@@ -135,8 +135,18 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
         </Panel>
       </div>
 
-      <div className="w-full max-w-4xl">
-        <Playground members={snap.members} youId={room.playerId} positions={room.positions} onMove={onMove} />
+      <div className="w-full">
+        <Playground
+          mode="band"
+          youId={room.playerId}
+          youName={me.name}
+          youImage={myFrog.image}
+          members={snap.members}
+          positions={room.positions}
+          onMove={onMove}
+          bandName={roomId}
+          crowd={room.crowd}
+        />
       </div>
 
       {snap.hostId === room.playerId ? (

@@ -2,14 +2,17 @@ import type { InstrumentLane, Difficulty, Character, RoomState, LiveStat } from 
 
 export type ClientMsg =
   | { type: "join"; name: string; character?: Character; reconnectToken?: string }
-  | { type: "spectate"; name?: string }
+  | { type: "spectate"; name?: string; id?: string }
   | { type: "move"; x: number; y: number; facing: -1 | 1 }
   | { type: "lockIn" }
   | { type: "backToLobby" }
+  | { type: "clearSong" }
   | { type: "updateProfile"; name: string; character: Character }
   | { type: "pickInstrument"; instrument: InstrumentLane }
   | { type: "pickPassage"; passageId: string }
   | { type: "setDifficulty"; difficulty: Difficulty }
+  | { type: "setSongCursor"; songId: string }
+  | { type: "voteSong"; songId: string }
   | { type: "ready"; ready: boolean }
   | { type: "stats"; stat: LiveStat }
   | { type: "proposeSong"; songId: string; durationMs: number }
@@ -26,6 +29,6 @@ export type ServerMsg =
   | { type: "countdown"; startAtEpochMs: number }
   | { type: "frame"; atMs: number; stats: Record<string, LiveStat> }
   | { type: "results"; final: Record<string, LiveStat> }
-  | { type: "crowd"; names: string[] }
+  | { type: "crowd"; members: { id: string; name: string; x: number; y: number; facing: number }[] }
   | { type: "positions"; players: Record<string, { x: number; y: number; facing: number }> }
   | { type: "error"; code: string; message: string };

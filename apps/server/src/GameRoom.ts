@@ -13,13 +13,15 @@ import type { ClientMsg, ServerMsg } from "@typohero/protocol";
 const FRAME_MS = 50;
 
 type Env = Record<string, never>;
-type Conn = { ws: WebSocket; playerId: string | null; crowdName?: string };
+type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string };
+type CrowdEntry = { name: string; x: number; y: number; facing: number };
 
 export class GameRoom extends DurableObject<Env> {
   private room: RoomState = initialRoom();
   private conns = new Set<Conn>();
   private stats = new Map<string, LiveStat>();
   private positions = new Map<string, { x: number; y: number; facing: number }>();
+  private crowd = new Map<string, CrowdEntry>();
   private tokens = new Map<string, string>();
   private frameTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -68,15 +70,18 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   private broadcastCrowd(): void {
-    const names: string[] = [];
-    for (const c of this.conns) if (c.crowdName) names.push(c.crowdName);
-    this.broadcast({ type: "crowd", names });
+    const members = [...this.crowd.entries()].map(([id, e]) => ({ id, ...e }));
+    this.broadcast({ type: "crowd", members });
+  }
+
+  private positionsObject(): Record<string, { x: number; y: number; facing: number }> {
+    const players: Record<string, { x: number; y: number; facing: number }> = {};
+    for (const [id, p] of this.positions) players[id] = p;
+    return players;
   }
 
   private broadcastPositions(): void {
-    const players: Record<string, { x: number; y: number; facing: number }> = {};
-    for (const [id, p] of this.positions) players[id] = p;
-    this.broadcast({ type: "positions", players });
+    this.broadcast({ type: "positions", players: this.positionsObject() });
   }
 
   private apply(action: RoomAction): void {
@@ -105,9 +110,30 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     if (msg.type === "spectate") {
-      conn.crowdName = msg.name?.trim() || "someone";
+      const id = msg.id ?? crypto.randomUUID();
+      conn.crowdId = id;
+      this.crowd.set(id, { name: msg.name?.trim() || "someone", x: 30, y: 0, facing: 1 });
       this.send(conn.ws, { type: "session", snapshot: this.room });
+      this.send(conn.ws, { type: "positions", players: this.positionsObject() });
       this.broadcastCrowd();
+      return;
+    }
+
+    if (msg.type === "move") {
+      if (conn.crowdId) {
+        const e = this.crowd.get(conn.crowdId);
+        if (e) {
+          e.x = msg.x;
+          e.y = msg.y;
+          e.facing = msg.facing;
+          this.broadcastCrowd();
+        }
+        return;
+      }
+      if (conn.playerId) {
+        this.positions.set(conn.playerId, { x: msg.x, y: msg.y, facing: msg.facing });
+        this.broadcastPositions();
+      }
       return;
     }
 
@@ -116,12 +142,6 @@ export class GameRoom extends DurableObject<Env> {
 
     if (msg.type === "stats") {
       this.stats.set(playerId, msg.stat);
-      return;
-    }
-
-    if (msg.type === "move") {
-      this.positions.set(playerId, { x: msg.x, y: msg.y, facing: msg.facing });
-      this.broadcastPositions();
       return;
     }
 
@@ -161,6 +181,8 @@ export class GameRoom extends DurableObject<Env> {
         return { t: "lockIn", id };
       case "backToLobby":
         return { t: "backToLobby", id };
+      case "clearSong":
+        return { t: "clearSong", id };
       case "updateProfile":
         return { t: "updateProfile", id, name: msg.name, character: msg.character };
       case "pickInstrument":
@@ -169,6 +191,10 @@ export class GameRoom extends DurableObject<Env> {
         return { t: "pickPassage", id, passageId: msg.passageId };
       case "setDifficulty":
         return { t: "setDifficulty", id, difficulty: msg.difficulty };
+      case "setSongCursor":
+        return { t: "setSongCursor", id, songId: msg.songId };
+      case "voteSong":
+        return { t: "voteSong", id, songId: msg.songId };
       case "ready":
         return { t: "ready", id, ready: msg.ready };
       case "proposeSong":
@@ -242,6 +268,9 @@ export class GameRoom extends DurableObject<Env> {
       this.broadcastSession();
       this.broadcastPositions();
     }
-    if (conn.crowdName) this.broadcastCrowd();
+    if (conn.crowdId) {
+      this.crowd.delete(conn.crowdId);
+      this.broadcastCrowd();
+    }
   }
 }

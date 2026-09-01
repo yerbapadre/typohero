@@ -1,31 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRoom } from "../net/useRoom";
+import { CROWD_FROG_IMAGE } from "../characters";
+import { Playground } from "./multi/Playground";
 import { Roster } from "./multi/Roster";
 import { MultiResults } from "./multi/MultiResults";
 
 const NAME_KEY = "typohero:name";
-
-function CrowdList({ names }: { names: string[] }) {
-  if (names.length === 0) return null;
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="text-xs uppercase tracking-[0.3em] text-neutral-600">
-        👥 crowd · {names.length}
-      </div>
-      <div className="flex max-w-md flex-wrap justify-center gap-2">
-        {names.map((n, i) => (
-          <span
-            key={i}
-            className="rounded-full border border-white/10 bg-neutral-900 px-3 py-1 text-sm text-neutral-300"
-          >
-            {n}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function CrowdEntry() {
   const navigate = useNavigate();
@@ -113,12 +94,19 @@ export function CrowdView() {
 
 function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
   const navigate = useNavigate();
-  const room = useRoom(roomId, name, true);
+  const [spectatorId] = useState(() => crypto.randomUUID());
+  const room = useRoom(roomId, name, true, undefined, spectatorId);
   const snap = room.snapshot;
+
+  const onMove = useCallback(
+    (x: number, y: number, facing: -1 | 1) => room.send({ type: "move", x, y, facing }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   if (!snap) {
     return (
-      <div className="flex h-screen items-center justify-center bg-neutral-950 font-display text-white">
+      <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
         joining the crowd at {roomId}…
       </div>
     );
@@ -128,41 +116,50 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
     return <MultiResults members={snap.members} frame={room.frame} youId={null} />;
   }
 
+  if (snap.phase === "playing" || snap.phase === "countdown") {
+    return (
+      <div className="flex min-h-screen flex-col items-center gap-8 bg-cabinet-bg py-16 font-pixel text-cabinet-text">
+        <div className="text-2xl font-bold uppercase tracking-widest text-cabinet-accent">Now Playing</div>
+        <Roster members={snap.members} frame={room.frame} youId={null} />
+        <button
+          className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
+          onClick={() => navigate("/")}
+        >
+          ← Leave crowd
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center gap-8 bg-neutral-950 py-16 font-display text-white">
-      <div className="text-center">
-        <div className="text-xs uppercase tracking-[0.3em] text-neutral-500">now watching</div>
-        <div className="font-mono text-4xl tracking-widest">{roomId}</div>
-        <div className="mt-1 text-sm text-neutral-500">watching as {name}</div>
+    <div className="flex min-h-screen flex-col items-center gap-5 bg-cabinet-bg px-6 pb-10 pt-10 font-pixel text-cabinet-text">
+      <header className="text-center">
+        <div className="text-xs uppercase tracking-widest text-cabinet-text/40">now watching</div>
+        <div className="mt-1 text-4xl font-bold tracking-[0.3em] text-cabinet-accent md:text-5xl">{roomId}</div>
+        <div className="mt-1 text-[11px] uppercase tracking-widest text-cabinet-text/40">
+          in the crowd as {name} · 👥 {room.crowd.length}
+        </div>
+      </header>
+
+      <div className="w-full">
+        <Playground
+          mode="crowd"
+          youId={spectatorId}
+          youName={name}
+          youImage={CROWD_FROG_IMAGE}
+          members={snap.members}
+          positions={room.positions}
+          onMove={onMove}
+          bandName={roomId}
+          crowd={room.crowd}
+        />
       </div>
 
-      {snap.phase === "lobby" ? (
-        <>
-          <div className="text-lg text-frog">🎸 waiting for the band to start…</div>
-          <div className="flex flex-col gap-1 font-mono text-sm text-neutral-400">
-            {snap.members.length === 0 ? (
-              <span className="text-neutral-600">no one on stage yet</span>
-            ) : (
-              snap.members.map((m) => (
-                <div key={m.id} className={m.connected ? "" : "text-neutral-700 line-through"}>
-                  {m.name} · {m.instrument ?? "no instrument"}
-                  {m.ready ? " · ✓" : ""}
-                </div>
-              ))
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="text-2xl font-extrabold text-frog">NOW PLAYING</div>
-          <Roster members={snap.members} frame={room.frame} youId={null} />
-        </>
-      )}
-
-      <CrowdList names={room.crowd} />
-
-      <button className="mt-6 text-neutral-500 hover:text-white" onClick={() => navigate("/")}>
-        Leave crowd
+      <button
+        className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
+        onClick={() => navigate("/")}
+      >
+        ← Leave crowd
       </button>
     </div>
   );

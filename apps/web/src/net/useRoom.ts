@@ -4,21 +4,28 @@ import type { RoomState, LiveStat, Character } from "@typohero/engine";
 import { RoomClient } from "./RoomClient";
 
 export type Position = { x: number; y: number; facing: number };
+export type CrowdMember = { id: string; name: string; x: number; y: number; facing: number };
 
 export type Room = {
   snapshot: RoomState | null;
   frame: Record<string, LiveStat>;
-  crowd: string[];
+  crowd: CrowdMember[];
   positions: Record<string, Position>;
   playerId: string | null;
   connected: boolean;
   send: (msg: ClientMsg) => void;
 };
 
-export function useRoom(roomId: string, name: string, spectate = false, character?: Character): Room {
+export function useRoom(
+  roomId: string,
+  name: string,
+  spectate = false,
+  character?: Character,
+  spectatorId?: string,
+): Room {
   const [snapshot, setSnapshot] = useState<RoomState | null>(null);
   const [frame, setFrame] = useState<Record<string, LiveStat>>({});
-  const [crowd, setCrowd] = useState<string[]>([]);
+  const [crowd, setCrowd] = useState<CrowdMember[]>([]);
   const [positions, setPositions] = useState<Record<string, Position>>({});
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -40,11 +47,12 @@ export function useRoom(roomId: string, name: string, spectate = false, characte
       },
       spectate,
       character,
+      spectatorId,
     );
     clientRef.current = client;
     client.connect();
     return () => client.close();
-  }, [roomId, name, spectate, character?.faceId]);
+  }, [roomId, name, spectate, character?.faceId, spectatorId]);
 
   return {
     snapshot,

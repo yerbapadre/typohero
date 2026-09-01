@@ -43,9 +43,9 @@ export const FROGS: Frog[] = [
     id: "systems-thinking",
     name: "Walling Jacobs",
     image: "/frogs/wizard.png",
-    tagline: "Mysterious fellow — elevates his bandmates' base stats.",
+    tagline: "Mighty wizard, sees the bigger picture",
     description:
-      "Solves each word fast, then zooms out to see how it fits the whole passage. Calm, deliberate, always three notes ahead of everyone else.",
+      "This hopper's greatest asset is his mind. He's played a lot of shows. He dreams of playing even bigger ones. Every time he plays, he makes magic — I mean, music — intentionally, with an ear for the wider mix.",
     accent: "text-emerald-400",
     stats: [
       { label: "Focus", value: 5 },
@@ -58,3 +58,6 @@ export const FROGS: Frog[] = [
 export function frogById(id: string | null | undefined): Frog | undefined {
   return FROGS.find((f) => f.id === id);
 }
+
+// Shared sprite for every crowd member — a spectator frog filming on a phone.
+export const CROWD_FROG_IMAGE = "/frogs/crowd.png";

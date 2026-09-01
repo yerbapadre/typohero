@@ -12,7 +12,7 @@ export type RoomEvents = {
   onFrame?: (stats: Record<string, LiveStat>, atMs: number) => void;
   onCountdown?: (startAtEpochMs: number) => void;
   onResults?: (final: Record<string, LiveStat>) => void;
-  onCrowd?: (names: string[]) => void;
+  onCrowd?: (members: { id: string; name: string; x: number; y: number; facing: number }[]) => void;
   onPositions?: (players: Record<string, { x: number; y: number; facing: number }>) => void;
   onWelcome?: (playerId: string) => void;
   onOpen?: () => void;
@@ -29,6 +29,7 @@ export class RoomClient {
     private events: RoomEvents,
     private spectate = false,
     private character?: Character,
+    private spectatorId?: string,
   ) {}
 
   connect(): void {
@@ -36,7 +37,7 @@ export class RoomClient {
     this.ws = ws;
     ws.addEventListener("open", () => {
       if (this.spectate) {
-        this.send({ type: "spectate", name: this.name });
+        this.send({ type: "spectate", name: this.name, id: this.spectatorId });
       } else {
         const reconnectToken = localStorage.getItem(this.tokenKey()) ?? undefined;
         this.send({ type: "join", name: this.name, character: this.character, reconnectToken });
@@ -72,7 +73,7 @@ export class RoomClient {
         this.events.onResults?.(msg.final);
         break;
       case "crowd":
-        this.events.onCrowd?.(msg.names);
+        this.events.onCrowd?.(msg.members);
         break;
       case "positions":
         this.events.onPositions?.(msg.players);

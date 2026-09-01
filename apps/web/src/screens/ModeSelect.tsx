@@ -26,6 +26,12 @@ function CabinetButton({
   );
 }
 
+const TITLES: Record<string, { main: string; sub: string }> = {
+  amber: { main: "FROG SINATRA", sub: "& THE TADPOLES" },
+  pond: { main: "Pondsingers" sub: "A musical exhibit" },
+  coral: { main: "Amphibious echoes", sub: "voices from below" },
+};
+
 const OPTIONS = [
   { label: "Single Player", to: "/solo/character" },
   { label: "Multiplayer", to: "/band" },
@@ -66,9 +72,11 @@ export function ModeSelect() {
       />
 
       <h1 className="text-center leading-[1.3] tracking-wide">
-        <span className="block text-3xl font-bold text-white md:text-5xl">FROG SINATRA</span>
+        <span className="block text-3xl font-bold text-white md:text-5xl">
+          {(TITLES[theme] ?? TITLES.amber!).main}
+        </span>
         <span className="mt-2 block text-lg font-bold text-cabinet-accent md:text-2xl">
-          &amp; THE TADPOLES
+          {(TITLES[theme] ?? TITLES.amber!).sub}
         </span>
       </h1>
 

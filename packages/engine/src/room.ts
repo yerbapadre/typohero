@@ -16,6 +16,8 @@ export type Member = {
   passageId: string | null;
   difficulty: Difficulty;
   ready: boolean;
+  songCursor: string | null;
+  songVote: string | null;
 };
 
 export type SongProposal = { songId: string; durationMs: number; by: string };
@@ -37,10 +39,13 @@ export type RoomAction =
   | { t: "leave"; id: string }
   | { t: "lockIn"; id: string }
   | { t: "backToLobby"; id: string }
+  | { t: "clearSong"; id: string }
   | { t: "updateProfile"; id: string; name: string; character: Character }
   | { t: "pickInstrument"; id: string; instrument: InstrumentLane }
   | { t: "pickPassage"; id: string; passageId: string }
   | { t: "setDifficulty"; id: string; difficulty: Difficulty }
+  | { t: "setSongCursor"; id: string; songId: string }
+  | { t: "voteSong"; id: string; songId: string }
   | { t: "ready"; id: string; ready: boolean }
   | { t: "proposeSong"; id: string; songId: string; durationMs: number }
   | { t: "confirmSong"; id: string }
@@ -99,6 +104,8 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
         passageId: null,
         difficulty: "medium",
         ready: false,
+        songCursor: null,
+        songVote: null,
       };
       return {
         ...state,
@@ -131,6 +138,17 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
         songProposal: null,
         songId: null,
         songDurationMs: null,
+        members: state.members.map((m) => ({ ...m, ready: false, songCursor: null, songVote: null })),
+      };
+    }
+
+    case "clearSong": {
+      if (!isHost(state, action.id) || state.phase !== "setup") return state;
+      return {
+        ...state,
+        songId: null,
+        songDurationMs: null,
+        songProposal: null,
         members: state.members.map((m) => ({ ...m, ready: false })),
       };
     }
@@ -160,6 +178,12 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
 
     case "setDifficulty":
       return mapMember(state, action.id, (m) => ({ ...m, difficulty: action.difficulty }));
+
+    case "setSongCursor":
+      return mapMember(state, action.id, (m) => ({ ...m, songCursor: action.songId }));
+
+    case "voteSong":
+      return mapMember(state, action.id, (m) => ({ ...m, songVote: action.songId }));
 
     case "ready": {
       const m = member(state, action.id);

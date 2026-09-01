@@ -219,3 +219,59 @@ describe("lock in / setup phase", () => {
     expect(s.songId).toBeNull();
   });
 });
+
+describe("song cursor & votes", () => {
+  it("tracks each member's cursor independently", () => {
+    let s = lobbyWith("a", "b");
+    s = run(
+      s,
+      { t: "setSongCursor", id: "a", songId: "chocolate" },
+      { t: "setSongCursor", id: "b", songId: "waterloo" },
+    );
+    expect(s.members.find((m) => m.id === "a")!.songCursor).toBe("chocolate");
+    expect(s.members.find((m) => m.id === "b")!.songCursor).toBe("waterloo");
+  });
+
+  it("records a vote and re-votes overwrite", () => {
+    let s = run(lobbyWith("a"), { t: "voteSong", id: "a", songId: "chocolate" });
+    expect(s.members[0]!.songVote).toBe("chocolate");
+    s = run(s, { t: "voteSong", id: "a", songId: "waterloo" });
+    expect(s.members[0]!.songVote).toBe("waterloo");
+  });
+
+  it("backToLobby clears cursors and votes", () => {
+    let s = run(
+      lobbyWith("a"),
+      { t: "lockIn", id: "a" },
+      { t: "setSongCursor", id: "a", songId: "chocolate" },
+      { t: "voteSong", id: "a", songId: "chocolate" },
+      { t: "backToLobby", id: "a" },
+    );
+    expect(s.members[0]!.songCursor).toBeNull();
+    expect(s.members[0]!.songVote).toBeNull();
+  });
+});
+
+describe("clearSong", () => {
+  it("host clears the picked song, staying in setup", () => {
+    let s = run(
+      lobbyWith("a"),
+      { t: "lockIn", id: "a" },
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
+    );
+    expect(s.songId).toBe("chocolate");
+    s = run(s, { t: "clearSong", id: "a" });
+    expect(s.phase).toBe("setup");
+    expect(s.songId).toBeNull();
+  });
+
+  it("non-host cannot clear the song", () => {
+    let s = run(
+      lobbyWith("a", "b"),
+      { t: "lockIn", id: "a" },
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
+      { t: "clearSong", id: "b" },
+    );
+    expect(s.songId).toBe("chocolate");
+  });
+});
