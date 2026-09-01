@@ -77,6 +77,14 @@ scripts/           offline Demucs stem-splitting pipeline
       by `summarizeRun`; multiplayer `MultiResults` (ranked players + band total) on
       `phase: results`, fed by the authoritative `results` frame.
 
+- [x] **Premium frogs** — `Frog.premium` marks a character as locked. Locked frogs still ride the
+      carousel (solo picker *and* lobby) with their art dimmed under a padlock, so everyone can see
+      what's on offer; picking one is blocked until a code is redeemed. `POST /api/unlock` matches
+      the code against the Worker's `UNLOCK_CODES` secret (`frogId:CODE,…`, behind the gate cookie)
+      and returns the frog id; the client keeps unlocks in `localStorage`. Cosmetic-grade — it keeps
+      codes off the client but doesn't stop a player editing their own storage. `FrogArt` falls back
+      to a silhouette when the PNG is missing, so entries ship before their art does.
+
 ## Backlog
 
 - [ ] **Content screens** — song picker, passage library, character customization (D1-backed).
