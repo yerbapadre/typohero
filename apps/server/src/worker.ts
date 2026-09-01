@@ -88,6 +88,27 @@ export default {
       return json({ ok: true });
     }
 
+    const del = path.match(/^\/api\/songs\/([^/]+)(?:\/([^/]+))?$/);
+    if (del && request.method === "DELETE") {
+      const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s+/, "");
+      if (!safeEqual(token, env.UPLOAD_TOKEN)) return json({ ok: false }, 401);
+      if (del[2]) {
+        await env.SONGS.delete(`songs/${del[1]}/${del[2]}`);
+        return json({ ok: true, deleted: 1 });
+      }
+      const prefix = `songs/${del[1]}/`;
+      const keys: string[] = [];
+      let cursor: string | undefined;
+      do {
+        const listed = await env.SONGS.list({ prefix, cursor });
+        keys.push(...listed.objects.map((o) => o.key));
+        cursor = listed.truncated ? listed.cursor : undefined;
+      } while (cursor);
+      if (keys.length === 0) return json({ ok: false, error: "not found" }, 404);
+      await env.SONGS.delete(keys);
+      return json({ ok: true, deleted: keys.length });
+    }
+
     if (path === "/api/songs" && request.method === "GET") {
       if (!(await hasSession(request, env))) return json({ ok: false }, 401);
       const listed = await env.SONGS.list({ prefix: "songs/" });
