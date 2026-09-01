@@ -87,13 +87,9 @@ export function StageView({
             {song ? song.title : "—"}
           </div>
         </div>
-        <div className="text-center">
+        <div className="text-right">
           <div className="text-[9px] uppercase tracking-[0.3em] text-cabinet-text/40">band</div>
           <div className="text-lg tracking-widest text-white md:text-2xl">{bandTotal}</div>
-        </div>
-        <div className="text-right">
-          <div className="text-[9px] uppercase tracking-[0.3em] text-cabinet-text/40">tracks</div>
-          <div className="text-sm tracking-widest text-cabinet-text/70 md:text-base">{lanes}</div>
         </div>
       </header>
 
