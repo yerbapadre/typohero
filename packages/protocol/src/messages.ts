@@ -1,9 +1,13 @@
 import type { InstrumentLane, Difficulty, Character, RoomState, LiveStat } from "@typohero/engine";
 
+// Something a crowd frog can carry around the pit, grabbed at the bar.
+export type CrowdItem = "drink" | "pizza";
+
 export type ClientMsg =
   | { type: "join"; name: string; character?: Character; reconnectToken?: string }
   | { type: "spectate"; name?: string; id?: string; observer?: boolean }
   | { type: "move"; x: number; y: number; facing: -1 | 1 }
+  | { type: "equip"; item: CrowdItem | null }
   | { type: "lockIn" }
   | { type: "backToLobby" }
   | { type: "clearSong" }
@@ -30,6 +34,6 @@ export type ServerMsg =
   | { type: "countdown"; startAtEpochMs: number }
   | { type: "frame"; atMs: number; stats: Record<string, LiveStat> }
   | { type: "results"; final: Record<string, LiveStat> }
-  | { type: "crowd"; members: { id: string; name: string; x: number; y: number; facing: number }[] }
+  | { type: "crowd"; members: { id: string; name: string; x: number; y: number; facing: number; item?: CrowdItem }[] }
   | { type: "positions"; players: Record<string, { x: number; y: number; facing: number }> }
   | { type: "error"; code: string; message: string };

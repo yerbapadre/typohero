@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import type { CrowdItem } from "@typohero/protocol";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import { CROWD_FROG_IMAGE } from "../characters";
@@ -148,6 +149,12 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
     [],
   );
 
+  const onEquip = useCallback(
+    (item: CrowdItem | null) => room.send({ type: "equip", item }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   if (!snap) {
     return (
       <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
@@ -173,6 +180,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         crowdYouId={spectatorId}
         crowdYouName={name}
         onMove={onMove}
+        onEquip={onEquip}
         controllableCrowd
       />
     );
