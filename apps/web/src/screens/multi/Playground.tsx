@@ -1,26 +1,15 @@
-import { useEffect, useRef, useState } from "react";
 import type { Member } from "@typohero/engine";
 import type { CrowdMember, Position } from "../../net/useRoom";
 import { FROGS, frogById, CROWD_FROG_IMAGE } from "../../characters";
+import { useCrowdWalk } from "../../game/useCrowdWalk";
 
-const RUN = 0.42; // % per frame (~25%/s)
-const GRAVITY = 0.14;
-const JUMP_V = 2.6;
 const GROUND = 8; // % baseline above the floor
-const SEND_MS = 55;
 
 const FENCE_X = 64; // barrier sits ~2/3 across
 const BAND_MIN = FENCE_X + 4; // bandmates roam right of the barrier
 const BAND_MAX = 95;
 const CROWD_MIN = 4; // crowd funnels into the left
 const CROWD_MAX = FENCE_X - 6;
-
-const RUN_KEYS = new Set(["arrowleft", "arrowright", "a", "d"]);
-const JUMP_KEYS = new Set(["arrowup", "w", " "]);
-
-function clamp(v: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, v));
-}
 
 function Bulbs() {
   return (
@@ -235,81 +224,7 @@ export function Playground({
   const [zLo, zHi] = mode === "band" ? [BAND_MIN, BAND_MAX] : [CROWD_MIN, CROWD_MAX];
   const startX = mode === "band" ? 80 : 30;
 
-  const [pos, setPos] = useState({ x: startX, y: 0 });
-  const [face, setFace] = useState<1 | -1>(1);
-
-  const keys = useRef<Set<string>>(new Set());
-  const jumpQueued = useRef(false);
-  const vy = useRef(0);
-  const grounded = useRef(true);
-  const posRef = useRef({ x: startX, y: 0 });
-  const faceRef = useRef<1 | -1>(1);
-  const lastSend = useRef(0);
-  const onMoveRef = useRef(onMove);
-  onMoveRef.current = onMove;
-  const zoneRef = useRef({ lo: zLo, hi: zHi });
-  zoneRef.current = { lo: zLo, hi: zHi };
-
-  useEffect(() => {
-    function down(e: KeyboardEvent) {
-      const k = e.key.toLowerCase();
-      if (RUN_KEYS.has(k) || JUMP_KEYS.has(k)) e.preventDefault();
-      if (JUMP_KEYS.has(k)) jumpQueued.current = true;
-      if (RUN_KEYS.has(k)) keys.current.add(k);
-    }
-    function up(e: KeyboardEvent) {
-      keys.current.delete(e.key.toLowerCase());
-    }
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    onMoveRef.current(posRef.current.x, 0, 1);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
-  }, []);
-
-  useEffect(() => {
-    let raf = 0;
-    function loop(t: number) {
-      const k = keys.current;
-      let dx = 0;
-      if (k.has("arrowleft") || k.has("a")) dx -= 1;
-      if (k.has("arrowright") || k.has("d")) dx += 1;
-
-      if (jumpQueued.current) {
-        if (grounded.current) {
-          vy.current = JUMP_V;
-          grounded.current = false;
-        }
-        jumpQueued.current = false;
-      }
-
-      const active = dx !== 0 || !grounded.current || vy.current !== 0;
-      if (active) {
-        if (dx !== 0) faceRef.current = dx < 0 ? -1 : 1;
-        const x = clamp(posRef.current.x + dx * RUN, zoneRef.current.lo, zoneRef.current.hi);
-        let y = posRef.current.y + vy.current;
-        vy.current -= GRAVITY;
-        if (y <= 0) {
-          y = 0;
-          vy.current = 0;
-          grounded.current = true;
-        }
-        posRef.current = { x, y };
-        setPos({ x, y });
-        setFace(faceRef.current);
-
-        if (t - lastSend.current >= SEND_MS) {
-          lastSend.current = t;
-          onMoveRef.current(x, y, faceRef.current);
-        }
-      }
-      raf = requestAnimationFrame(loop);
-    }
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+  const you = useCrowdWalk({ enabled: true, startX, zone: { min: zLo, max: zHi }, onMove });
 
   const bandActors = members.filter((m) => m.connected && !(mode === "band" && m.id === youId));
   const crowdActors = crowd.filter((c) => !(mode === "crowd" && c.id === youId));
@@ -343,7 +258,7 @@ export function Playground({
           return <FrogSprite key={m.id} name={m.name} image={frog.image} x={p.x} y={p.y} facing={p.facing} />;
         })}
 
-        <FrogSprite name={youName} image={youImage} x={pos.x} y={pos.y} facing={face} flip={mode === "crowd"} you />
+        <FrogSprite name={youName} image={youImage} x={you.x} y={you.y} facing={you.facing} flip={mode === "crowd"} you />
       </div>
       <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-cabinet-text/40">
         ← → or A/D to run · space / ↑ / W to jump
