@@ -14,6 +14,9 @@ Polish and juice pass before the show. See `ROADMAP.md` for architecture/status.
 - [ ] Band revealed on the stage
 - [ ] Make gameplay fun to watch — animate frogs, lights, camera, cool animations on streaks. Eye candy.
 - [ ] Things for the crowd to do during the show
+- [ ] Animate frogs filing into the stage area
+- [ ] Funny crowd activities during performance (merch stand, bar)
+- [ ] Seed the concert area with a bunch of NPC frogs
 
 ## Screens / UI
 - [ ] Better text throughout
@@ -26,3 +29,12 @@ Polish and juice pass before the show. See `ROADMAP.md` for architecture/status.
 - [ ] Decide on the song to perform
 - [ ] Crowd can add votes during song selection
 - [ ] Upload / delete songs from setlist
+
+## Infra / Networking
+- [ ] Load test the application
+- [ ] Braydon: build the synchronization
+- [ ] Run over LAN?
+- [ ] Host on a fun domain
+
+## Presentation
+- [ ] Slideshow intro presentation
