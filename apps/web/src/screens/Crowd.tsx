@@ -168,6 +168,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         frame={room.frame}
         song={song}
         youId={null}
+        positions={room.positions}
         crowd={room.crowd}
         crowdYouId={spectatorId}
         crowdYouName={name}

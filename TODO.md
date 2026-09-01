@@ -11,8 +11,9 @@ Polish and juice pass before the show. See `ROADMAP.md` for architecture/status.
 ## Animation / Juice
 - [ ] Frogs running off screen after "locking in"
 - [ ] Crowd running into the stage when show starts
-- [ ] Band revealed on the stage
+- [x] Band revealed on the stage (each player's frog stands on the riser behind its lane)
 - [ ] Make gameplay fun to watch — animate frogs, lights, camera, cool animations on streaks. Eye candy.
+      (started: performers react to their own lane — star power, wobble, anger on a miss)
 - [ ] Things for the crowd to do during the show (they can walk + cheer now; needs activities)
 - [ ] Animate frogs filing into the stage area
 - [ ] Funny crowd activities during performance (merch stand, bar)

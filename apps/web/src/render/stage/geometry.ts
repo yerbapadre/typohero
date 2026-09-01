@@ -16,9 +16,18 @@ export type StageGeom = {
   sFar: number;
   zHit: number;
   depth: number;
+  yRig: number;
+  performerH: number;
 };
 
-const TOP_FRAC = 0.2;
+// The horizon sits low enough to leave a shelf between the lighting rig and
+// the top of the highway — that band is the riser the band stands and walks
+// on, so the rig hangs high and tight to the ceiling to keep it clear.
+const TOP_FRAC = 0.27;
+const RIG_FRAC = 0.18;
+// Headroom kept above a performer for their name tag and mood shout, so the
+// stack clears the lighting rig instead of being drawn through it.
+export const TAG_ROOM = 56;
 const HIT_FRAC = 0.72;
 const BOT_FRAC = 1;
 const DEPTH = 1.5;
@@ -56,7 +65,15 @@ export function stageGeom(w: number, h: number, laneCount: number): StageGeom {
     sFar,
     zHit: (1 / sHit - 1) / DEPTH,
     depth: DEPTH,
+    yRig: yTop * RIG_FRAC,
+    performerH: Math.max(44, Math.min(150, yTop * (1 - RIG_FRAC) - TAG_ROOM)),
   };
+}
+
+// A performer's x is a percentage of the stage width — the same units the room
+// relays over `move`, so a frog stands in the same spot on every machine.
+export function performerX(g: StageGeom, xPercent: number): number {
+  return (xPercent / 100) * g.w;
 }
 
 export function depthScale(g: StageGeom, z: number): number {

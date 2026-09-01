@@ -1,22 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { createWalker, type WalkZone, type WalkState } from "./walk";
 
-// Shared side-scroller movement for a frog you control — the lobby playground
-// and the crowd pit in front of the stage run the same physics. Units are
-// percentages of the containing scene, matching what the room relays.
-const RUN = 0.42;
-const GRAVITY = 0.14;
-const JUMP_V = 2.6;
+// React binding for a DOM-rendered frog you steer (the lobby playground, the
+// crowd pit). State lands in React so the sprite can be a positioned div; the
+// canvas stage uses `useStageWalk` instead to stay off the render path.
+export type { WalkZone, WalkState } from "./walk";
+
 const SEND_MS = 55;
-
-const RUN_KEYS = new Set(["arrowleft", "arrowright", "a", "d"]);
-const JUMP_KEYS = new Set(["arrowup", "w", " "]);
-
-export type WalkZone = { min: number; max: number };
-export type WalkState = { x: number; y: number; facing: 1 | -1 };
-
-function clamp(v: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, v));
-}
 
 export function useCrowdWalk(opts: {
   enabled: boolean;
@@ -29,80 +19,58 @@ export function useCrowdWalk(opts: {
   const [pos, setPos] = useState({ x: startX, y: 0 });
   const [facing, setFacing] = useState<1 | -1>(1);
 
-  const keys = useRef<Set<string>>(new Set());
-  const jumpQueued = useRef(false);
-  const vy = useRef(0);
-  const grounded = useRef(true);
-  const posRef = useRef({ x: startX, y: 0 });
-  const faceRef = useRef<1 | -1>(1);
-  const lastSend = useRef(0);
   const onMoveRef = useRef(onMove);
   onMoveRef.current = onMove;
   const zoneRef = useRef(zone);
   zoneRef.current = zone;
+  const lastSend = useRef(0);
+
+  const walkerRef = useRef<ReturnType<typeof createWalker> | null>(null);
+  if (!walkerRef.current) {
+    walkerRef.current = createWalker({
+      startX,
+      keymap: "all",
+      zone: () => zoneRef.current,
+    });
+  }
+  const walker = walkerRef.current;
 
   useEffect(() => {
     if (!enabled) return;
     function down(e: KeyboardEvent) {
-      const k = e.key.toLowerCase();
-      if (RUN_KEYS.has(k) || JUMP_KEYS.has(k)) e.preventDefault();
-      if (JUMP_KEYS.has(k)) jumpQueued.current = true;
-      if (RUN_KEYS.has(k)) keys.current.add(k);
+      if (walker.down(e.key)) e.preventDefault();
     }
     function up(e: KeyboardEvent) {
-      keys.current.delete(e.key.toLowerCase());
+      walker.up(e.key);
     }
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
-    onMoveRef.current(posRef.current.x, posRef.current.y, faceRef.current);
+    onMoveRef.current(walker.state.x, walker.state.y, walker.state.facing);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
-      keys.current.clear();
+      walker.clear();
     };
-  }, [enabled]);
+  }, [enabled, walker]);
 
   useEffect(() => {
     if (!enabled) return;
     let raf = 0;
     function loop(t: number) {
-      const k = keys.current;
-      let dx = 0;
-      if (k.has("arrowleft") || k.has("a")) dx -= 1;
-      if (k.has("arrowright") || k.has("d")) dx += 1;
-
-      if (jumpQueued.current) {
-        if (grounded.current) {
-          vy.current = JUMP_V;
-          grounded.current = false;
-        }
-        jumpQueued.current = false;
-      }
-
-      if (dx !== 0 || !grounded.current || vy.current !== 0) {
-        if (dx !== 0) faceRef.current = dx < 0 ? -1 : 1;
-        const x = clamp(posRef.current.x + dx * RUN, zoneRef.current.min, zoneRef.current.max);
-        let y = posRef.current.y + vy.current;
-        vy.current -= GRAVITY;
-        if (y <= 0) {
-          y = 0;
-          vy.current = 0;
-          grounded.current = true;
-        }
-        posRef.current = { x, y };
+      if (walker.step()) {
+        const { x, y, facing: f } = walker.state;
         setPos({ x, y });
-        setFacing(faceRef.current);
-
+        setFacing(f);
         if (t - lastSend.current >= SEND_MS) {
           lastSend.current = t;
-          onMoveRef.current(x, y, faceRef.current);
+          onMoveRef.current(x, y, f);
         }
       }
       raf = requestAnimationFrame(loop);
     }
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [enabled]);
+  }, [enabled, walker]);
 
   return { x: pos.x, y: pos.y, facing };
 }
