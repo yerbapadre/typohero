@@ -20,6 +20,8 @@ content_type() {
   case "$1" in
     *.json) echo "application/json" ;;
     *.webm) echo "audio/webm" ;;
+    *.wav) echo "audio/wav" ;;
+    *.mp3) echo "audio/mpeg" ;;
     *) echo "application/octet-stream" ;;
   esac
 }
