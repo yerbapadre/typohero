@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../theme/useTheme";
+import { frogFor } from "../theme/themes";
 
 function CabinetButton({
   label,
@@ -35,6 +37,7 @@ const DEFAULT = OPTIONS.findIndex((o) => o.label === "Multiplayer");
 export function ModeSelect() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState(DEFAULT);
+  const theme = useTheme();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -56,7 +59,7 @@ export function ModeSelect() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-cabinet-bg px-6 py-12 font-pixel text-cabinet-text">
       <img
-        src="/frogs/gunslinger.png"
+        src={`/frogs/${frogFor(theme)}.png`}
         alt="frog"
         draggable={false}
         className="h-52 w-auto select-none object-contain md:h-64"

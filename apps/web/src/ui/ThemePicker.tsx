@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { THEMES, getStoredTheme, setTheme, type ThemeId } from "../theme/themes";
+import { THEMES, setTheme, type ThemeId } from "../theme/themes";
+import { useTheme } from "../theme/useTheme";
 
 export function ThemePicker() {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<ThemeId>(getStoredTheme);
+  const active = useTheme();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,7 +25,6 @@ export function ThemePicker() {
 
   function pick(id: ThemeId) {
     setTheme(id);
-    setActive(id);
   }
 
   return (

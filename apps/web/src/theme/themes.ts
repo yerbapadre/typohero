@@ -11,10 +11,11 @@ export type ThemeVars = {
   text: string;
 };
 
-export const THEMES: { id: ThemeId; name: string; vars: ThemeVars }[] = [
+export const THEMES: { id: ThemeId; name: string; frog: string; vars: ThemeVars }[] = [
   {
     id: "amber",
     name: "Amber Cabinet",
+    frog: "gunslinger",
     vars: {
       bg: "#12100a",
       accent: "#f5b53f",
@@ -29,6 +30,7 @@ export const THEMES: { id: ThemeId; name: string; vars: ThemeVars }[] = [
   {
     id: "pond",
     name: "Pond Cyan",
+    frog: "wizard",
     vars: {
       bg: "#0a1414",
       accent: "#45d6d0",
@@ -43,6 +45,7 @@ export const THEMES: { id: ThemeId; name: string; vars: ThemeVars }[] = [
   {
     id: "coral",
     name: "Coral Punch",
+    frog: "boxer",
     vars: {
       bg: "#120c0b",
       accent: "#7cf07f",
@@ -83,9 +86,21 @@ export function applyTheme(id: ThemeId) {
   );
 }
 
+const listeners = new Set<(id: ThemeId) => void>();
+
 export function setTheme(id: ThemeId) {
   localStorage.setItem(STORAGE_KEY, id);
   applyTheme(id);
+  listeners.forEach((l) => l(id));
+}
+
+export function subscribeTheme(fn: (id: ThemeId) => void) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+export function frogFor(id: ThemeId) {
+  return (THEMES.find((t) => t.id === id) ?? THEMES[0]!).frog;
 }
 
 export function initTheme() {
