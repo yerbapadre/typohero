@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { FROGS, type FrogStat } from "../characters";
+import { isUnlocked, useUnlocks } from "../game/unlocks";
+import { FrogArt } from "../ui/FrogArt";
+import { UnlockForm } from "../ui/UnlockForm";
 
 const STAT_ORDER = ["Speed", "Focus", "Power"];
 
@@ -22,8 +25,10 @@ export function FrogList({
   onSelect,
 }: {
   selected: string | null;
-  onSelect: (id: string) => void;
+  /** Fires with `null` while a locked frog is on screen, so callers can gate "next". */
+  onSelect: (id: string | null) => void;
 }) {
+  useUnlocks();
   const start = Math.max(
     0,
     FROGS.findIndex((f) => f.id === selected),
@@ -32,12 +37,13 @@ export function FrogList({
   const [dir, setDir] = useState<1 | -1>(1);
   const touchX = useRef<number | null>(null);
   const frog = FROGS[index]!;
+  const locked = !isUnlocked(frog.id);
 
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   useEffect(() => {
-    onSelectRef.current(frog.id);
-  }, [frog.id]);
+    onSelectRef.current(locked ? null : frog.id);
+  }, [frog.id, locked]);
 
   function move(step: 1 | -1) {
     setDir(step);
@@ -76,14 +82,25 @@ export function FrogList({
         </button>
 
         <div key={frog.id} className={(dir === 1 ? "frog-in-right" : "frog-in-left") + " flex flex-col items-center gap-3 px-12"}>
-          <img
-            src={frog.image}
-            alt={frog.name}
-            draggable={false}
-            className="h-44 w-auto object-contain md:h-52"
-          />
+          <div className="relative flex h-44 items-center justify-center md:h-52">
+            <FrogArt frog={frog} dimmed={locked} className="h-44 w-auto md:h-52" />
+            {locked && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <span className="border-2 border-cabinet-accent bg-black/70 px-3 py-1.5 text-[11px] uppercase tracking-widest text-cabinet-accent">
+                  🔒 Locked
+                </span>
+              </div>
+            )}
+            {frog.premium && !locked && (
+              <span className="pointer-events-none absolute right-0 top-0 border-2 border-cabinet-accent bg-cabinet-accent px-2 py-0.5 text-[9px] uppercase tracking-widest text-cabinet-ink">
+                Premium
+              </span>
+            )}
+          </div>
           <div className="text-center">
-            <div className="text-lg font-bold text-white md:text-xl">{frog.name}</div>
+            <div className={"text-lg font-bold md:text-xl " + (locked ? "text-cabinet-text/50" : "text-white")}>
+              {frog.name}
+            </div>
             <div className="mt-1 text-[11px] text-cabinet-accent">{frog.tagline}</div>
           </div>
         </div>
@@ -109,6 +126,17 @@ export function FrogList({
             </div>
           ))}
         </div>
+        {locked && (
+          <div className="mt-3 border-t-2 border-cabinet-frame pt-3">
+            <UnlockForm
+              frogName={frog.name}
+              onUnlocked={(f) => {
+                const i = FROGS.findIndex((x) => x.id === f.id);
+                if (i >= 0) setIndex(i);
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-3 flex justify-center gap-2">
@@ -120,7 +148,12 @@ export function FrogList({
               setDir(i > index ? 1 : -1);
               setIndex(i);
             }}
-            className={"h-2 transition-all " + (i === index ? "w-6 bg-cabinet-accent" : "w-2 bg-cabinet-border hover:bg-cabinet-text/40")}
+            title={isUnlocked(f.id) ? f.name : `${f.name} (locked)`}
+            className={
+              "h-2 transition-all " +
+              (i === index ? "w-6 bg-cabinet-accent" : "w-2 bg-cabinet-border hover:bg-cabinet-text/40") +
+              (isUnlocked(f.id) ? "" : " opacity-40")
+            }
           />
         ))}
       </div>

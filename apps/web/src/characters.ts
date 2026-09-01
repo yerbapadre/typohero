@@ -8,6 +8,8 @@ export type Frog = {
   description: string;
   accent: string;
   stats: FrogStat[];
+  /** Premium frogs are dimmed behind a padlock until an unlock code is redeemed. */
+  premium?: true;
 };
 
 export const FROGS: Frog[] = [
@@ -53,11 +55,52 @@ export const FROGS: Frog[] = [
       { label: "Power", value: 5 },
     ],
   },
+  // ── Premium ──────────────────────────────────────────────────────────────
+  // Art drops into apps/web/public/frogs/premium/. Until the file exists the
+  // card falls back to a silhouette, so these entries are safe to ship early.
+  // Each id needs a matching entry in the Worker's UNLOCK_CODES secret.
+  {
+    id: "encore",
+    name: "Sid Vicious Toad",
+    image: "/frogs/premium/punk.png",
+    tagline: "Three chords and the truth, played too loud.",
+    description:
+      "Signed to no label, banned from three venues. He plays fast, he plays sloppy, and somehow the crowd never stops moving. Bring earplugs.",
+    accent: "text-fuchsia-400",
+    premium: true,
+    stats: [
+      { label: "Speed", value: 5 },
+      { label: "Focus", value: 2 },
+      { label: "Power", value: 5 },
+    ],
+  },
+  {
+    id: "headliner",
+    name: "Ribbit Plant",
+    image: "/frogs/premium/rockstar.png",
+    tagline: "Born for the encore.",
+    description:
+      "A frog who has never once played to an empty room. Golden pipes, bottomless lungs, and a stage presence that makes the par cans look dim.",
+    accent: "text-sky-400",
+    premium: true,
+    stats: [
+      { label: "Speed", value: 4 },
+      { label: "Focus", value: 5 },
+      { label: "Power", value: 4 },
+    ],
+  },
 ];
 
 export function frogById(id: string | null | undefined): Frog | undefined {
   return FROGS.find((f) => f.id === id);
 }
+
+export function isPremium(id: string | null | undefined): boolean {
+  return frogById(id)?.premium === true;
+}
+
+/** Frog ids that need no unlock code. */
+export const FREE_FROG_IDS = FROGS.filter((f) => !f.premium).map((f) => f.id);
 
 // Shared sprite for every crowd member — a spectator frog filming on a phone.
 export const CROWD_FROG_IMAGE = "/frogs/crowd.png";

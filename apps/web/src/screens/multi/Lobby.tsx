@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Room } from "../../net/useRoom";
-import { FROGS, frogById } from "../../characters";
+import { FREE_FROG_IDS, FROGS, frogById } from "../../characters";
+import { isUnlocked, useUnlocks } from "../../game/unlocks";
+import { FrogArt } from "../../ui/FrogArt";
+import { UnlockForm } from "../../ui/UnlockForm";
 import { Playground } from "./Playground";
 
 const CHAR_KEY = "typohero:frog";
@@ -20,12 +23,27 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   const snap = room.snapshot!;
   const me = snap.members.find((m) => m.id === room.playerId);
 
+  useUnlocks();
+
+  // Which frog the carousel is showing. Locked frogs can be browsed but not
+  // committed, so this floats free of the frog actually on the roster.
+  const [view, setView] = useState(0);
+  const syncedRef = useRef(false);
+
   const sendRef = useRef(room.send);
   sendRef.current = room.send;
 
+  const committedFaceId = me?.character?.faceId;
+  useEffect(() => {
+    if (syncedRef.current || !committedFaceId) return;
+    syncedRef.current = true;
+    setView(Math.max(0, FROGS.findIndex((f) => f.id === committedFaceId)));
+  }, [committedFaceId]);
+
   useEffect(() => {
     if (me && !me.character) {
-      const id = sessionStorage.getItem(CHAR_KEY) ?? FROGS[0]!.id;
+      const stored = sessionStorage.getItem(CHAR_KEY);
+      const id = stored && isUnlocked(stored) ? stored : FREE_FROG_IDS[0]!;
       sendRef.current({
         type: "updateProfile",
         name: me.name,
@@ -48,7 +66,8 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   }
 
   const myFrog = frogById(me.character?.faceId) ?? FROGS[0]!;
-  const frogIndex = Math.max(0, FROGS.findIndex((f) => f.id === me.character?.faceId));
+  const viewFrog = FROGS[view]!;
+  const viewLocked = !isUnlocked(viewFrog.id);
 
   function setFrog(id: string) {
     sessionStorage.setItem(CHAR_KEY, id);
@@ -57,6 +76,14 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
       name: me!.name,
       character: { faceId: id, outfitId: "default", instrumentSkinId: "default" },
     });
+  }
+
+  // Browsing is free; only unlocked frogs get pushed to the roster.
+  function moveView(step: 1 | -1) {
+    const next = (view + step + FROGS.length) % FROGS.length;
+    setView(next);
+    const f = FROGS[next]!;
+    if (isUnlocked(f.id)) setFrog(f.id);
   }
 
   return (
@@ -113,25 +140,47 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
         <Panel title="your frog">
           <div className="flex flex-1 items-center justify-center gap-4">
             <button
-              onClick={() => setFrog(FROGS[(frogIndex - 1 + FROGS.length) % FROGS.length]!.id)}
+              onClick={() => moveView(-1)}
               className="border-2 border-cabinet-border bg-cabinet-btn px-3 py-2 text-lg transition-colors hover:border-cabinet-accent"
               aria-label="previous frog"
             >
               ‹
             </button>
             <div className="flex w-40 flex-col items-center gap-2">
-              <img src={myFrog.image} alt="" className="h-28 w-auto object-contain" />
-              <div className="text-center text-[11px] uppercase tracking-widest text-cabinet-accent">{myFrog.name}</div>
-              <div className="text-center font-mono text-[10px] normal-case text-cabinet-text/50">{myFrog.tagline}</div>
+              <div className="relative flex h-28 items-center justify-center">
+                <FrogArt frog={viewFrog} dimmed={viewLocked} className="h-28 w-auto" />
+                {viewLocked && (
+                  <span className="pointer-events-none absolute border-2 border-cabinet-accent bg-black/70 px-2 py-1 text-[9px] uppercase tracking-widest text-cabinet-accent">
+                    🔒 Locked
+                  </span>
+                )}
+              </div>
+              <div className="text-center text-[11px] uppercase tracking-widest text-cabinet-accent">{viewFrog.name}</div>
+              <div className="text-center font-mono text-[10px] normal-case text-cabinet-text/50">{viewFrog.tagline}</div>
             </div>
             <button
-              onClick={() => setFrog(FROGS[(frogIndex + 1) % FROGS.length]!.id)}
+              onClick={() => moveView(1)}
               className="border-2 border-cabinet-border bg-cabinet-btn px-3 py-2 text-lg transition-colors hover:border-cabinet-accent"
               aria-label="next frog"
             >
               ›
             </button>
           </div>
+          {viewLocked && (
+            <div className="mt-3 border-t-2 border-cabinet-frame pt-3">
+              <UnlockForm
+                frogName={viewFrog.name}
+                onUnlocked={(f) => {
+                  const i = FROGS.findIndex((x) => x.id === f.id);
+                  if (i >= 0) setView(i);
+                  setFrog(f.id);
+                }}
+              />
+              <div className="mt-2 text-[10px] uppercase tracking-widest text-cabinet-text/30">
+                still playing as {myFrog.name}
+              </div>
+            </div>
+          )}
         </Panel>
       </div>
 

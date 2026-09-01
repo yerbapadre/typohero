@@ -2,6 +2,7 @@ import { streakMultiplier } from "@typohero/engine";
 import { useNavigate } from "react-router-dom";
 import { useNav } from "../nav/NavContext";
 import { frogById } from "../characters";
+import { FrogArt } from "../ui/FrogArt";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -30,7 +31,7 @@ export function Results() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-10 bg-neutral-900 py-16 text-white">
       <div className="flex flex-col items-center text-center">
         {frog ? (
-          <img src={frog.image} alt={frog.name} className="h-40 w-auto object-contain" />
+          <FrogArt frog={frog} className="h-40 w-auto" />
         ) : (
           <div className="text-5xl">🎸</div>
         )}

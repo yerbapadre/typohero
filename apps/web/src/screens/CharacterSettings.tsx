@@ -8,8 +8,12 @@ export function CharacterSettings() {
   const navigate = useNavigate();
   const selected = config.character?.faceId ?? null;
 
-  function pick(id: string) {
-    setConfig({ character: { faceId: id, outfitId: "default", instrumentSkinId: "default" } });
+  // FrogList reports `null` while a locked frog is on screen, which clears the
+  // selection and disables "next" until a code is redeemed.
+  function pick(id: string | null) {
+    setConfig({
+      character: id ? { faceId: id, outfitId: "default", instrumentSkinId: "default" } : null,
+    });
   }
 
   return (

@@ -37,10 +37,12 @@ sits behind a password gate (`apps/web/src/ui/Gate.tsx`).
 ```
 pnpm install
 
-# 1. Local Worker secrets. Both are required or the Worker won't boot.
+# 1. Local Worker secrets. The first two are required or the Worker won't boot;
+#    UNLOCK_CODES is optional (unset just means no premium frog is unlockable).
 cat > apps/server/.dev.vars <<'EOF'
 GATE_SECRET=frogs
 UPLOAD_TOKEN=dev-upload-token
+UNLOCK_CODES=encore:SIDLIVES,headliner:STAIRWAY
 EOF
 
 # 2. Build the web client once. `wrangler dev` binds apps/web/dist as its
@@ -96,5 +98,21 @@ Keep copyrighted audio out of the repo — real songs are gitignored; only `plac
 ### Deploy
 
 Push to `main`. CI runs typecheck + test + build, then `wrangler deploy` from `apps/server`
-(needs `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` repo secrets). Production `GATE_SECRET` and
-`UPLOAD_TOKEN` are set with `wrangler secret put`, not `.dev.vars`.
+(needs `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` repo secrets). Production `GATE_SECRET`,
+`UPLOAD_TOKEN` and `UNLOCK_CODES` are set with `wrangler secret put`, not `.dev.vars`.
+
+### Premium frogs
+
+Frogs in `apps/web/src/characters.ts` marked `premium: true` render dimmed behind a padlock until
+the player redeems a code. `UNLOCK_CODES` is a comma-separated `frogId:CODE` list — one code per
+frog, so you control who gets which:
+
+```
+wrangler secret put UNLOCK_CODES   # e.g. encore:SIDLIVES,headliner:STAIRWAY
+```
+
+`POST /api/unlock` checks the code behind the gate cookie and answers with the frog id; the client
+remembers it in `localStorage` under `typohero:unlocked`. The check is cosmetic-grade — it keeps
+codes off the client, but a determined player can still edit their own localStorage. Art lives in
+`apps/web/public/frogs/premium/`; a card whose PNG is missing falls back to a silhouette, so entries
+can ship before their assets do.

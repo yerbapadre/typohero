@@ -8,6 +8,8 @@ interface Env {
   ASSETS: Fetcher;
   GATE_SECRET: string;
   UPLOAD_TOKEN: string;
+  /** Premium frog codes: "frogId:CODE,frogId:CODE". Unset = no frogs unlockable. */
+  UNLOCK_CODES: string;
 }
 
 const SESSION_COOKIE = "th-session";
@@ -39,6 +41,18 @@ async function hasSession(request: Request, env: Env): Promise<boolean> {
   const [payload, mac] = decodeURIComponent(match[1]!).split(".");
   if (payload !== SESSION_PAYLOAD || !mac) return false;
   return safeEqual(mac, await hmac(env.GATE_SECRET, payload));
+}
+
+/** Resolve a redemption code to the frog id it unlocks, or null. */
+function frogForCode(codes: string, code: string): string | null {
+  for (const pair of codes.split(",")) {
+    const idx = pair.indexOf(":");
+    if (idx < 1) continue;
+    const frogId = pair.slice(0, idx).trim();
+    const secret = pair.slice(idx + 1).trim();
+    if (secret && safeEqual(secret, code)) return frogId;
+  }
+  return null;
 }
 
 function json(data: unknown, status = 200): Response {
@@ -74,6 +88,14 @@ export default {
           "Set-Cookie": `${SESSION_COOKIE}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`,
         },
       });
+    }
+
+    if (path === "/api/unlock" && request.method === "POST") {
+      if (!(await hasSession(request, env))) return json({ ok: false }, 401);
+      const { code } = (await request.json().catch(() => ({}))) as { code?: string };
+      const frogId = code ? frogForCode(env.UNLOCK_CODES ?? "", code.trim()) : null;
+      if (!frogId) return json({ ok: false }, 403);
+      return json({ ok: true, frogId });
     }
 
     const put = path.match(/^\/api\/songs\/([^/]+)\/([^/]+)$/);
