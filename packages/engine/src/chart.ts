@@ -1,4 +1,6 @@
 import { tokenizeWords } from "./notes";
+import type { InstrumentLane } from "./song";
+import type { Difficulty } from "./difficulty";
 
 /** One keystroke: a letter from the passage placed at a time from the song. */
 export type ChartNote = {
@@ -83,6 +85,39 @@ export function windowsFor(chart: Chart, index: number, base: HitWindows = HIT_W
 
   const scale = room / base.good;
   return { perfect: base.perfect * scale, great: base.great * scale, good: room };
+}
+
+/** `chart.json`, written by `scripts/chart-song.py` beside a song's manifest. */
+export type ChartFile = {
+  songId: string;
+  bpm: number;
+  subdivision: number;
+  beatsMs: number[];
+  lanes: Partial<Record<InstrumentLane, Partial<Record<Difficulty, number[]>>>>;
+};
+
+export function laneTimes(
+  file: ChartFile,
+  lane: InstrumentLane,
+  difficulty: Difficulty,
+): number[] {
+  return file.lanes[lane]?.[difficulty] ?? [];
+}
+
+export function isChartedLane(file: ChartFile, lane: InstrumentLane): boolean {
+  const tiers = file.lanes[lane];
+  if (!tiers) return false;
+  return Object.values(tiers).some((times) => (times?.length ?? 0) > 0);
+}
+
+export function chartFromFile(
+  file: ChartFile,
+  lane: InstrumentLane,
+  difficulty: Difficulty,
+  text: string,
+  opts: BuildChartOpts = {},
+): Chart {
+  return buildChart(text, laneTimes(file, lane, difficulty), opts);
 }
 
 export function judge(deltaMs: number, windows: HitWindows): Judgment {
