@@ -40,6 +40,20 @@ scripts/           offline Demucs stem-splitting pipeline
 
 ## Done (recent)
 
+- [x] **Visual highway** — canvas note-highway on a shared Stage view: one perspective lane per
+      player, yours pulled to the centre (`centerOn`), on a cabinet-styled rig (truss, par cans,
+      swinging beams, amp stacks in the wings). Each lane carries a deck — nameplate, points,
+      streak multiplier, quality meter — plus juice: pixel-burst hits, miss shake, star-power
+      chevrons, and lane tearing that mirrors the audio degradation. Band members, spectators and
+      the `/stage/<code>` big screen all draw the same scene; remote lanes are rebuilt from the
+      room snapshot (deterministic notes) plus the 20Hz `LiveStat`, so only the local lane has
+      per-character truth.
+- [x] **Crowd pit** — the crowd stands along the front of the stage for the whole show and can
+      walk/jump their frog there (`useCrowdWalk`, shared with the lobby playground); two rows of
+      NPC frogs keep the pit full, and the whole pit bobs faster as the band plays tighter.
+- [x] **Stage route** — `/stage/<code>` big screen joins as an *observer* (a spectator that takes
+      no crowd frog): pre-show marquee with the band code and bill, then the live highway.
+
 - [x] **Stem presence + activity** — `analyze-song.py` (ffmpeg `silencedetect`) bakes per-lane
       `present` + `active` segments into `song.json`; runs in `add-song.sh` + backfills existing
       songs. Engine helpers (`presentLanes`/`laneActiveAt`/`laneFirstActiveMs`, tested). Instrument
@@ -61,12 +75,14 @@ scripts/           offline Demucs stem-splitting pipeline
 - [ ] **Content screens** — song picker, passage library, character customization (D1-backed).
 - [ ] **D1 seed** — script to upsert `song.json` manifests into the D1 catalog.
 - [ ] **Miss stinger** — discrete "clunk" on error, on top of continuous degradation.
-- [ ] **Visual highway** — canvas note-highway / juice on the Stage view.
 - [ ] **Profiles** — single-player stats persisted to D1.
 - [ ] **Stems → R2** — move real song stems to a private R2 bucket (kept out of the public repo).
 - [ ] **`index.html` no-cache** — serve the SPA entry uncached so deploys show up instantly (hashed assets stay immutable).
 - [ ] **Cloudflare Access** — company SSO in front of the app before the show (replaces the dumb gate).
 - [ ] **Feel tuning** — degradation intensity, recovery speed, quality window, WPM presets.
+- [ ] **Highway density** — one note per word at `wpm/5` words per minute means only ~2 notes are
+      in flight (`TRAVEL_MS` 6000). Denser chunking would fill the lanes; it changes gameplay, so
+      it's a deliberate decision, not a tweak.
 - [ ] **Own-lane-local audio** — in distributed mode, drive your own lane from your local run
       (zero latency) instead of the round-tripped frame. Only if the ~100ms feels laggy.
 - [ ] **Reconnect UX** — the token/rejoin plumbing exists; add the actual "reconnecting…" flow
