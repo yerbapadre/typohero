@@ -9,6 +9,7 @@ import {
   summarizeRhythmRun,
   notePoints,
   timingMultiplier,
+  charStatesFromRhythm,
 } from "./rhythm";
 
 const chartOf = (text: string, stepMs = 1000) =>
@@ -221,5 +222,20 @@ describe("scoring helpers", () => {
     expect(notePoints(50, "perfect")).toBeGreaterThan(notePoints(1, "perfect"));
     expect(notePoints(50, "good")).toBeLessThan(notePoints(50, "perfect"));
     expect(notePoints(50, "miss")).toBe(0);
+  });
+});
+
+describe("charStatesFromRhythm", () => {
+  it("maps note states into the highway's colour vocabulary", () => {
+    let run = run4();
+    run = press(run, "a", 0);
+    run = press(run, "b", 1200);
+    run = press(run, "z", 2000);
+    run = expireRhythmNotes(run, 9000);
+    expect(charStatesFromRhythm(run)).toEqual(["correct", "fixed", "incorrect", "missed"]);
+  });
+
+  it("leaves untouched notes pending", () => {
+    expect(charStatesFromRhythm(run4())).toEqual(["pending", "pending", "pending", "pending"]);
   });
 });

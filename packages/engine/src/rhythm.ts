@@ -1,5 +1,6 @@
 import { judge, windowsFor, type Chart, type Judgment } from "./chart";
 import { strokePoints, type LiveStat } from "./scoring";
+import type { CharState } from "./typing";
 
 export type NoteState = "pending" | "perfect" | "great" | "good" | "wrong" | "missed";
 
@@ -115,6 +116,20 @@ export function expireRhythmNotes(run: RhythmRun, atMs: number): RhythmRun {
 
   if (!states) return run;
   return { ...run, resolved, states, streak: 0 };
+}
+
+const CHAR_STATE: Record<NoteState, CharState> = {
+  pending: "pending",
+  perfect: "correct",
+  great: "correct",
+  good: "fixed",
+  wrong: "incorrect",
+  missed: "missed",
+};
+
+/** Note states in the word-mode vocabulary, so the shared highway can colour them. */
+export function charStatesFromRhythm(run: RhythmRun): CharState[] {
+  return run.states.map((state) => CHAR_STATE[state]);
 }
 
 export function rhythmQuality(run: RhythmRun, window = 10): number {

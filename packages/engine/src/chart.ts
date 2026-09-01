@@ -1,4 +1,4 @@
-import { tokenizeWords } from "./notes";
+import { tokenizeWords, type Note } from "./notes";
 import type { InstrumentLane } from "./song";
 import type { Difficulty } from "./difficulty";
 
@@ -119,6 +119,42 @@ export function chartFromFile(
 ): Chart {
   return buildChart(text, laneTimes(file, lane, difficulty), opts);
 }
+
+/**
+ * Chart notes as highway notes, so the note-highway renderer draws a rhythm
+ * chart without knowing about charts: each letter reaches the hit line exactly
+ * at its charted time, having spawned `travelMs` earlier.
+ */
+export function chartNotes(chart: Chart, travelMs: number): Note[] {
+  return chart.notes.map((note) => ({
+    index: note.index,
+    word: note.char,
+    charStart: note.index,
+    charEnd: note.index + 1,
+    spawnMs: note.timeMs - travelMs,
+    hitMs: note.timeMs,
+  }));
+}
+
+/**
+ * How long a charted note should travel, so a lane holds roughly `notesInFlight`
+ * notes at once however dense it is. A constant travel time makes a 16th-note
+ * lane illegible and a half-note lane look empty.
+ */
+export function travelMsForChart(chart: Chart, notesInFlight = 8): number {
+  const gaps: number[] = [];
+  for (let i = 1; i < chart.notes.length; i++) {
+    gaps.push(chart.notes[i]!.timeMs - chart.notes[i - 1]!.timeMs);
+  }
+  if (gaps.length === 0) return TRAVEL_BOUNDS.max;
+
+  gaps.sort((a, b) => a - b);
+  const median = gaps[Math.floor(gaps.length / 2)]!;
+  const travel = median * notesInFlight;
+  return Math.round(Math.max(TRAVEL_BOUNDS.min, Math.min(TRAVEL_BOUNDS.max, travel)));
+}
+
+const TRAVEL_BOUNDS = { min: 1100, max: 4000 };
 
 export function judge(deltaMs: number, windows: HitWindows): Judgment {
   const off = Math.abs(deltaMs);

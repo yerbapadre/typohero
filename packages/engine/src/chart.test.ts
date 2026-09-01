@@ -7,6 +7,8 @@ import {
   isChartedLane,
   chartFromFile,
   HIT_WINDOWS,
+  chartNotes,
+  travelMsForChart,
   type ChartFile,
 } from "./chart";
 
@@ -137,5 +139,51 @@ describe("chart files", () => {
 
   it("yields an empty chart for an uncharted lane", () => {
     expect(chartFromFile(file, "vocals", "easy", "abcd").notes).toEqual([]);
+  });
+});
+
+describe("chartNotes", () => {
+  it("lands each letter on the hit line at its charted time", () => {
+    const notes = chartNotes(buildChart("ab", [1000, 1250]), 600);
+    expect(notes.map((n) => n.hitMs)).toEqual([1000, 1250]);
+    expect(notes.map((n) => n.spawnMs)).toEqual([400, 650]);
+  });
+
+  it("gives every note a single-character span", () => {
+    const notes = chartNotes(buildChart("ab", [0, 250]), 600);
+    expect(notes.map((n) => n.word)).toEqual(["a", "b"]);
+    expect(notes.map((n) => [n.charStart, n.charEnd])).toEqual([
+      [0, 1],
+      [1, 2],
+    ]);
+  });
+});
+
+describe("travelMsForChart", () => {
+  it("keeps roughly the requested number of notes in flight", () => {
+    const eighths = buildChart("abcdefgh", grid(8, 250), { loop: true });
+    expect(travelMsForChart(eighths, 8)).toBe(2000);
+  });
+
+  it("shortens travel for dense charts and lengthens it for sparse ones", () => {
+    const dense = buildChart("abcdefgh", grid(8, 125), { loop: true });
+    const sparse = buildChart("abcdefgh", grid(8, 500), { loop: true });
+    expect(travelMsForChart(dense)).toBeLessThan(travelMsForChart(sparse));
+  });
+
+  it("ignores an outlying rest by taking the median gap", () => {
+    const chart = buildChart("abcd", [0, 250, 500, 30000], { loop: true });
+    expect(travelMsForChart(chart, 8)).toBe(2000);
+  });
+
+  it("stays within sane bounds", () => {
+    const veryDense = buildChart("abcd", grid(4, 5), { loop: true });
+    const verySparse = buildChart("abcd", grid(4, 20000), { loop: true });
+    expect(travelMsForChart(veryDense)).toBe(1100);
+    expect(travelMsForChart(verySparse)).toBe(4000);
+  });
+
+  it("falls back for a chart with fewer than two notes", () => {
+    expect(travelMsForChart(buildChart("a", [0]))).toBe(4000);
   });
 });
