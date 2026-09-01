@@ -21,8 +21,8 @@ export const FROGS: Frog[] = [
     accent: "text-amber-400",
     stats: [
       { label: "Speed", value: 5 },
-      { label: "Focus", value: 3 },
-      { label: "Power", value: 2 },
+      { label: "Focus", value: 1 },
+      { label: "Power", value: 4 },
     ],
   },
   {
@@ -34,9 +34,9 @@ export const FROGS: Frog[] = [
       "Don't let his looks fool you, this frog is as friendly as they come. Still a deadly killer though, with sharp eyes, steady hands, and unfailing aim. Let him cook.",
     accent: "text-red-400",
     stats: [
-      { label: "Power", value: 5 },
-      { label: "Focus", value: 3 },
-      { label: "Speed", value: 2 },
+      { label: "Focus", value: 5 },
+      { label: "Speed", value: 3 },
+      { label: "Power", value: 3 },
     ],
   },
   {
@@ -48,9 +48,9 @@ export const FROGS: Frog[] = [
       "This hopper's greatest asset is his mind. He's played a lot of shows. He dreams of playing even bigger ones. Every time he plays, he makes magic — I mean, music — intentionally, with an ear for the wider mix.",
     accent: "text-emerald-400",
     stats: [
-      { label: "Focus", value: 5 },
       { label: "Speed", value: 3 },
-      { label: "Power", value: 2 },
+      { label: "Focus", value: 4 },
+      { label: "Power", value: 5 },
     ],
   },
 ];

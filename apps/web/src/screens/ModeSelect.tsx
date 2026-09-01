@@ -28,7 +28,7 @@ function CabinetButton({
 
 const TITLES: Record<string, { main: string; sub: string }> = {
   amber: { main: "FROG SINATRA", sub: "& THE TADPOLES" },
-  pond: { main: "Pondsingers" sub: "A musical exhibit" },
+  pond: { main: "Pondsingers" ,sub: "A musical exhibit" },
   coral: { main: "Amphibious echoes", sub: "voices from below" },
 };
 

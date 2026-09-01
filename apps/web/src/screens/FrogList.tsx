@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { FROGS } from "../characters";
+import { FROGS, type FrogStat } from "../characters";
+
+const STAT_ORDER = ["Speed", "Focus", "Power"];
+
+function orderedStats(stats: FrogStat[]) {
+  return [...stats].sort((a, b) => STAT_ORDER.indexOf(a.label) - STAT_ORDER.indexOf(b.label));
+}
 
 function Pips({ value }: { value: number }) {
   return (
@@ -92,11 +98,11 @@ export function FrogList({
       </div>
 
       <div className="mt-4 flex flex-col gap-2 border-2 border-cabinet-frame bg-black/15 p-4">
-        <p className="font-mono text-[11px] leading-relaxed text-cabinet-text/70">{frog.description}</p>
+        <p className="font-mono text-sm leading-relaxed text-cabinet-text/70">{frog.description}</p>
         <div className="mt-1 flex flex-col gap-1.5">
-          {frog.stats.map((s) => (
+          {orderedStats(frog.stats).map((s) => (
             <div key={s.label} className="flex items-center gap-3">
-              <span className="w-16 text-right text-[10px] uppercase tracking-widest text-cabinet-text/50">
+              <span className="w-16 text-right text-xs uppercase tracking-widest text-cabinet-text/50">
                 {s.label}
               </span>
               <Pips value={s.value} />

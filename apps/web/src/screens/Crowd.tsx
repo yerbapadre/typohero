@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRoom } from "../net/useRoom";
 import { CROWD_FROG_IMAGE } from "../characters";
+import { CabinetPage } from "../ui/CabinetPage";
 import { Playground } from "./multi/Playground";
 import { Roster } from "./multi/Roster";
 import { MultiResults } from "./multi/MultiResults";
@@ -19,35 +20,62 @@ export function CrowdEntry() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-neutral-950 font-display text-white">
-      <h1 className="text-4xl font-extrabold">Join the Crowd</h1>
-      <p className="text-neutral-400">Watch a band's show — pick a name so they know you're there.</p>
-      <input
-        autoFocus
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="your name"
-        className="w-64 rounded-xl border-2 border-white/15 bg-neutral-900 px-4 py-3 text-center text-lg outline-none focus:border-frog"
+    <CabinetPage
+      subtitle="spectator"
+      title={
+        <>
+          JOIN THE <span className="text-cabinet-accent">CROWD</span>
+        </>
+      }
+    >
+      <img
+        src={CROWD_FROG_IMAGE}
+        alt=""
+        draggable={false}
+        className="h-32 w-auto select-none object-contain md:h-40"
       />
-      <div className="flex gap-2">
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="code"
-          className="w-32 rounded-xl border-2 border-white/15 bg-neutral-900 px-4 py-3 text-center text-2xl font-bold uppercase tracking-widest outline-none focus:border-frog"
-        />
-        <button
-          disabled={!name || !code}
-          onClick={watch}
-          className="rounded-xl bg-frog px-6 py-3 font-extrabold text-ink transition hover:bg-[#4bb062] disabled:opacity-30"
-        >
-          Watch →
-        </button>
+
+      <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
+        <div className="flex flex-col gap-5">
+          <label className="flex flex-col gap-2">
+            <span className="text-xs uppercase tracking-widest text-cabinet-accent">Your name</span>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="frog sinatra"
+              className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-sm text-cabinet-text outline-none placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
+            />
+          </label>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-xs uppercase tracking-widest text-cabinet-accent">Band code</span>
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="code"
+              maxLength={4}
+              className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-xl uppercase tracking-[0.4em] text-cabinet-text outline-none placeholder:tracking-widest placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
+            />
+          </label>
+
+          <button
+            disabled={!name || !code}
+            onClick={watch}
+            className="w-full border-2 border-cabinet-accent bg-cabinet-accent px-5 py-5 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
+          >
+            Watch the Show →
+          </button>
+        </div>
       </div>
-      <button className="text-neutral-500 hover:text-white" onClick={() => navigate("/")}>
-        Back
+
+      <button
+        className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
+        onClick={() => navigate("/")}
+      >
+        ← Back
       </button>
-    </div>
+    </CabinetPage>
   );
 }
 
@@ -60,32 +88,45 @@ export function CrowdView() {
 
   if (!name) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-6 bg-neutral-950 font-display text-white">
-        <div className="text-center">
-          <div className="text-sm text-neutral-500">joining the crowd at</div>
-          <div className="font-mono text-4xl tracking-widest">{roomId}</div>
+      <CabinetPage
+        subtitle={`joining crowd ${roomId}`}
+        title={
+          <>
+            WHO ARE <span className="text-cabinet-accent">YOU?</span>
+          </>
+        }
+      >
+        <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
+          <div className="flex flex-col gap-5">
+            <label className="flex flex-col gap-2">
+              <span className="text-xs uppercase tracking-widest text-cabinet-accent">Your name</span>
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="frog sinatra"
+                className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-sm text-cabinet-text outline-none placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
+              />
+            </label>
+            <button
+              disabled={!draft}
+              onClick={() => {
+                sessionStorage.setItem(NAME_KEY, draft);
+                setName(draft);
+              }}
+              className="w-full border-2 border-cabinet-accent bg-cabinet-accent px-5 py-5 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
+            >
+              Watch {roomId} →
+            </button>
+          </div>
         </div>
-        <input
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="your name"
-          className="w-64 rounded-xl border-2 border-white/15 bg-neutral-900 px-4 py-3 text-center text-lg outline-none focus:border-frog"
-        />
         <button
-          disabled={!draft}
-          onClick={() => {
-            sessionStorage.setItem(NAME_KEY, draft);
-            setName(draft);
-          }}
-          className="rounded-xl bg-frog px-6 py-3 font-extrabold text-ink transition hover:bg-[#4bb062] disabled:opacity-30"
+          className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
+          onClick={() => navigate("/")}
         >
-          Watch →
+          ← Back
         </button>
-        <button className="text-neutral-500 hover:text-white" onClick={() => navigate("/")}>
-          Back
-        </button>
-      </div>
+      </CabinetPage>
     );
   }
 
