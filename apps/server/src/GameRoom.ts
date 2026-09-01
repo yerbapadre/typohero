@@ -110,11 +110,15 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     if (msg.type === "spectate") {
+      this.send(conn.ws, { type: "session", snapshot: this.room });
+      this.send(conn.ws, { type: "positions", players: this.positionsObject() });
+      if (msg.observer) {
+        this.broadcastCrowd();
+        return;
+      }
       const id = msg.id ?? crypto.randomUUID();
       conn.crowdId = id;
       this.crowd.set(id, { name: msg.name?.trim() || "someone", x: 30, y: 0, facing: 1 });
-      this.send(conn.ws, { type: "session", snapshot: this.room });
-      this.send(conn.ws, { type: "positions", players: this.positionsObject() });
       this.broadcastCrowd();
       return;
     }

@@ -30,6 +30,7 @@ export class RoomClient {
     private spectate = false,
     private character?: Character,
     private spectatorId?: string,
+    private observer = false,
   ) {}
 
   connect(): void {
@@ -37,7 +38,7 @@ export class RoomClient {
     this.ws = ws;
     ws.addEventListener("open", () => {
       if (this.spectate) {
-        this.send({ type: "spectate", name: this.name, id: this.spectatorId });
+        this.send({ type: "spectate", name: this.name, id: this.spectatorId, observer: this.observer });
       } else {
         const reconnectToken = localStorage.getItem(this.tokenKey()) ?? undefined;
         this.send({ type: "join", name: this.name, character: this.character, reconnectToken });

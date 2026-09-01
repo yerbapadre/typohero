@@ -22,6 +22,7 @@ export function useRoom(
   spectate = false,
   character?: Character,
   spectatorId?: string,
+  observer = false,
 ): Room {
   const [snapshot, setSnapshot] = useState<RoomState | null>(null);
   const [frame, setFrame] = useState<Record<string, LiveStat>>({});
@@ -48,11 +49,12 @@ export function useRoom(
       spectate,
       character,
       spectatorId,
+      observer,
     );
     clientRef.current = client;
     client.connect();
     return () => client.close();
-  }, [roomId, name, spectate, character?.faceId, spectatorId]);
+  }, [roomId, name, spectate, character?.faceId, spectatorId, observer]);
 
   return {
     snapshot,

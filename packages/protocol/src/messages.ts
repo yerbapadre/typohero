@@ -2,7 +2,7 @@ import type { InstrumentLane, Difficulty, Character, RoomState, LiveStat } from 
 
 export type ClientMsg =
   | { type: "join"; name: string; character?: Character; reconnectToken?: string }
-  | { type: "spectate"; name?: string; id?: string }
+  | { type: "spectate"; name?: string; id?: string; observer?: boolean }
   | { type: "move"; x: number; y: number; facing: -1 | 1 }
   | { type: "lockIn" }
   | { type: "backToLobby" }
