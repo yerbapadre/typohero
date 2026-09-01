@@ -11,6 +11,7 @@ import { Results } from "./screens/Results";
 import { BandEntry } from "./screens/Multiplayer";
 import { Room } from "./screens/Multiplayer";
 import { CrowdEntry, CrowdView } from "./screens/Crowd";
+import { ThemePicker } from "./ui/ThemePicker";
 
 function Guard({ ok, to, children }: { ok: boolean; to: string; children: React.ReactNode }) {
   if (!ok) return <Navigate to={to} replace />;
@@ -86,6 +87,7 @@ export function App() {
   return (
     <BrowserRouter>
       <NavProvider>
+        <ThemePicker />
         <AppRoutes />
       </NavProvider>
     </BrowserRouter>
