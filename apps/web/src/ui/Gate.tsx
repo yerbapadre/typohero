@@ -35,7 +35,7 @@ export function Gate({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen items-center justify-center bg-neutral-900 text-white">
       <form onSubmit={submit} className="flex flex-col items-center gap-4">
-        <h1 className="font-mono text-2xl">TypoHero</h1>
+        <h1 className="font-mono text-2xl">Frog City</h1>
         <input
           autoFocus
           type="password"

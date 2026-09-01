@@ -38,14 +38,23 @@ scripts/           offline Demucs stem-splitting pipeline
 - [x] **Client networking** — `RoomClient` + `useRoom`; live lobby (create/join by code, roster, song propose/confirm, instrument pick with live uniqueness, ready, host mode/start) and multiplayer performance (20Hz `LiveStat` send, pace anchored to the shared song start, audio-output machine drives stems from the room frame). Verified with two isolated browser clients end-to-end.
 - [x] **Performance decomposition** — extracted `useTypingRun` / `useStatBroadcast` / `useStemOutput` hooks + `Roster`; pure `liveStatFromRun` / `qualityFromRun` in the engine. Solo + multi share the typing/pace/audio logic.
 
-## Next up
+## Done (recent)
 
-- [ ] **Wire nav → real flow** — the single-player screens (character/song/text) are still
-      click-through stubs; back them with real pickers. Multiplayer lobby is live already.
-- [ ] **Passage picker** — passage is currently hardcoded in both performance screens;
-      surface the per-player passage selection (data model already supports it).
-- [ ] **Results screen** — dedicated view on `phase: results`: final scores per player +
-      band total (both solo and multi land in `results` with no real screen yet).
+- [x] **Stem presence + activity** — `analyze-song.py` (ffmpeg `silencedetect`) bakes per-lane
+      `present` + `active` segments into `song.json`; runs in `add-song.sh` + backfills existing
+      songs. Engine helpers (`presentLanes`/`laneActiveAt`/`laneFirstActiveMs`, tested). Instrument
+      pickers (solo + lobby) hide absent stems; each lane's words hold until its instrument comes
+      in (count-in overlay). Solo flow reordered character → song → instrument (song unlocks lanes).
+- [x] **WPM bump** — +50 across all difficulties (easy 70 … god 190). Old presets felt too easy.
+
+- [x] **Wire nav → real flow** — single-player character (look + instrument + difficulty),
+      song, and passage screens are real pickers backed by `RunConfig`; each gates its Next.
+- [x] **Passage picker** — engine passage library (`PASSAGES`); solo passage screen +
+      multiplayer lobby passage/difficulty pickers. Both performances build notes from the
+      selected passage (no more hardcoded text).
+- [x] **Results screen** — solo `results` view (points/accuracy/best streak + replay) driven
+      by `summarizeRun`; multiplayer `MultiResults` (ranked players + band total) on
+      `phase: results`, fed by the authoritative `results` frame.
 
 ## Backlog
 

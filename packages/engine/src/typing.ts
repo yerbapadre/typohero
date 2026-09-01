@@ -46,6 +46,43 @@ export function createRun(text: TypingText): TypingRun {
   };
 }
 
+export type RunSummary = {
+  points: number;
+  longestStreak: number;
+  accuracy: number;
+  correct: number;
+  incorrect: number;
+  fixed: number;
+  missed: number;
+  typed: number;
+  total: number;
+};
+
+export function summarizeRun(run: TypingRun): RunSummary {
+  let correct = 0;
+  let incorrect = 0;
+  let fixed = 0;
+  for (const s of run.strokes) {
+    if (s.outcome === "correct") correct++;
+    else if (s.outcome === "fixed") fixed++;
+    else incorrect++;
+  }
+  const missed = run.displayChars.filter((c) => c === "missed").length;
+  const typed = run.strokes.length;
+  const accuracy = typed === 0 ? 1 : (correct + fixed) / typed;
+  return {
+    points: run.points,
+    longestStreak: run.longestStreak,
+    accuracy,
+    correct,
+    incorrect,
+    fixed,
+    missed,
+    typed,
+    total: run.text.length,
+  };
+}
+
 export function applyKeypress(run: TypingRun, press: Keypress): TypingRun {
   if (press.type === "backspace") {
     if (run.cursor === 0) return run;

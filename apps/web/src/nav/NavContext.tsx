@@ -1,35 +1,36 @@
-import { createContext, useContext, useReducer, type ReactNode } from "react";
-import type { Mode } from "@typohero/engine";
-import {
-  navReducer,
-  initialNav,
-  type NavState,
-  type Screen,
-  type RunConfig,
-} from "./machine";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import type { RunSummary } from "@typohero/engine";
+import { defaultConfig, type RunConfig } from "./machine";
 
 type NavApi = {
-  state: NavState;
   config: RunConfig;
-  chooseMode: (mode: Mode) => void;
-  goto: (screen: Screen) => void;
+  result: RunSummary | null;
   setConfig: (patch: Partial<RunConfig>) => void;
-  back: () => void;
+  finish: (result: RunSummary) => void;
   reset: () => void;
 };
 
 const NavCtx = createContext<NavApi | null>(null);
 
 export function NavProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(navReducer, initialNav);
+  const navigate = useNavigate();
+  const [config, setConfigState] = useState<RunConfig>(defaultConfig);
+  const [result, setResult] = useState<RunSummary | null>(null);
+
   const api: NavApi = {
-    state,
-    config: state.config,
-    chooseMode: (mode) => dispatch({ type: "chooseMode", mode }),
-    goto: (screen) => dispatch({ type: "goto", screen }),
-    setConfig: (patch) => dispatch({ type: "setConfig", patch }),
-    back: () => dispatch({ type: "back" }),
-    reset: () => dispatch({ type: "reset" }),
+    config,
+    result,
+    setConfig: (patch) => setConfigState((c) => ({ ...c, ...patch })),
+    finish: (r) => {
+      setResult(r);
+      navigate("/solo/results");
+    },
+    reset: () => {
+      setConfigState(defaultConfig);
+      setResult(null);
+      navigate("/");
+    },
   };
   return <NavCtx.Provider value={api}>{children}</NavCtx.Provider>;
 }

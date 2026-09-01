@@ -89,6 +89,11 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
+    if (msg.type === "spectate") {
+      this.send(conn.ws, { type: "session", snapshot: this.room });
+      return;
+    }
+
     const playerId = conn.playerId;
     if (!playerId) return;
 

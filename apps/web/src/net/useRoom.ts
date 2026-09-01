@@ -11,7 +11,7 @@ export type Room = {
   send: (msg: ClientMsg) => void;
 };
 
-export function useRoom(roomId: string, name: string): Room {
+export function useRoom(roomId: string, name: string, spectate = false): Room {
   const [snapshot, setSnapshot] = useState<RoomState | null>(null);
   const [frame, setFrame] = useState<Record<string, LiveStat>>({});
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -19,17 +19,23 @@ export function useRoom(roomId: string, name: string): Room {
   const clientRef = useRef<RoomClient | null>(null);
 
   useEffect(() => {
-    const client = new RoomClient(roomId, name, {
-      onWelcome: setPlayerId,
-      onSnapshot: setSnapshot,
-      onFrame: (stats) => setFrame(stats),
-      onOpen: () => setConnected(true),
-      onClose: () => setConnected(false),
-    });
+    const client = new RoomClient(
+      roomId,
+      name,
+      {
+        onWelcome: setPlayerId,
+        onSnapshot: setSnapshot,
+        onFrame: (stats) => setFrame(stats),
+        onResults: (final) => setFrame(final),
+        onOpen: () => setConnected(true),
+        onClose: () => setConnected(false),
+      },
+      spectate,
+    );
     clientRef.current = client;
     client.connect();
     return () => client.close();
-  }, [roomId, name]);
+  }, [roomId, name, spectate]);
 
   return {
     snapshot,

@@ -25,14 +25,19 @@ export class RoomClient {
     private roomId: string,
     private name: string,
     private events: RoomEvents,
+    private spectate = false,
   ) {}
 
   connect(): void {
     const ws = new WebSocket(`${wsBase()}/room/${this.roomId}/ws`);
     this.ws = ws;
     ws.addEventListener("open", () => {
-      const reconnectToken = localStorage.getItem(this.tokenKey()) ?? undefined;
-      this.send({ type: "join", name: this.name, reconnectToken });
+      if (this.spectate) {
+        this.send({ type: "spectate" });
+      } else {
+        const reconnectToken = localStorage.getItem(this.tokenKey()) ?? undefined;
+        this.send({ type: "join", name: this.name, reconnectToken });
+      }
       this.events.onOpen?.();
     });
     ws.addEventListener("message", (e) => this.onMessage(JSON.parse(e.data) as ServerMsg));

@@ -48,6 +48,9 @@ JSON
 
 echo "wrote $OUT (6 stems + song.json)"
 
+echo "analyzing stem activity..."
+python3 "$ROOT/scripts/analyze-song.py" "$OUT"
+
 if [ "${SYNC:-1}" = "1" ]; then
   echo "syncing $ID to catalog (BASE=${BASE:-http://localhost:8799})..."
   "$ROOT/scripts/sync-songs.sh" "$ID" || echo "sync skipped/failed — run ./scripts/sync-songs.sh $ID manually"

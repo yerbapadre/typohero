@@ -2,6 +2,7 @@ import type { InstrumentLane, Difficulty, Character, RoomState, LiveStat } from 
 
 export type ClientMsg =
   | { type: "join"; name: string; character?: Character; reconnectToken?: string }
+  | { type: "spectate" }
   | { type: "updateProfile"; name: string; character: Character }
   | { type: "pickInstrument"; instrument: InstrumentLane }
   | { type: "pickPassage"; passageId: string }

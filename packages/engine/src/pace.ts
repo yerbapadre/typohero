@@ -2,11 +2,11 @@ import type { Difficulty } from "./difficulty";
 import type { TypingRun } from "./typing";
 
 export const DIFFICULTY_WPM: Record<Difficulty, number> = {
-  easy: 20,
-  medium: 40,
-  hard: 70,
-  expert: 100,
-  god: 140,
+  easy: 70,
+  medium: 90,
+  hard: 120,
+  expert: 150,
+  god: 190,
 };
 
 export function paceIndexFor(wpm: number, elapsedMs: number): number {

@@ -1,4 +1,10 @@
-import { INSTRUMENT_LANES, type InstrumentLane } from "@typohero/engine";
+import {
+  INSTRUMENT_LANES,
+  PASSAGES,
+  presentLanes,
+  type Difficulty,
+  type InstrumentLane,
+} from "@typohero/engine";
 import type { Room } from "../../net/useRoom";
 import { useSongs } from "../../net/useSongs";
 
@@ -7,6 +13,8 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   const songs = useSongs();
   const me = snap.members.find((m) => m.id === room.playerId);
   const isHost = snap.hostId === room.playerId;
+  const song = songs?.find((s) => s.id === snap.songId) ?? null;
+  const available = song ? new Set(presentLanes(song)) : new Set(INSTRUMENT_LANES);
   const takenLanes = new Set(
     snap.members.filter((m) => m.id !== room.playerId && m.instrument).map((m) => m.instrument),
   );
@@ -73,22 +81,56 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
           <div className="text-neutral-400">song: {snap.songId}</div>
 
           <div className="flex flex-wrap justify-center gap-2">
-            {INSTRUMENT_LANES.map((lane: InstrumentLane) => (
-              <button
-                key={lane}
-                disabled={takenLanes.has(lane)}
-                onClick={() => room.send({ type: "pickInstrument", instrument: lane })}
-                className={
-                  me?.instrument === lane
-                    ? "text-sky-400"
-                    : takenLanes.has(lane)
-                      ? "text-neutral-700"
-                      : "text-neutral-400"
-                }
-              >
-                {lane}
-              </button>
-            ))}
+            {INSTRUMENT_LANES.map((lane: InstrumentLane) => {
+              const gone = takenLanes.has(lane) || !available.has(lane);
+              return (
+                <button
+                  key={lane}
+                  disabled={gone}
+                  onClick={() => room.send({ type: "pickInstrument", instrument: lane })}
+                  title={!available.has(lane) ? "not in this song" : undefined}
+                  className={
+                    me?.instrument === lane
+                      ? "text-sky-400"
+                      : gone
+                        ? "text-neutral-700 line-through"
+                        : "text-neutral-400"
+                  }
+                >
+                  {lane}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-xs uppercase tracking-wide text-neutral-600">passage</div>
+            <div className="flex flex-wrap justify-center gap-2 font-mono text-sm">
+              {PASSAGES.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => room.send({ type: "pickPassage", passageId: p.id })}
+                  className={me?.passageId === p.id ? "text-sky-400" : "text-neutral-500"}
+                >
+                  {p.title}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-xs uppercase tracking-wide text-neutral-600">difficulty</div>
+            <div className="flex flex-wrap justify-center gap-2 font-mono text-sm">
+              {(["easy", "medium", "hard", "expert", "god"] as Difficulty[]).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => room.send({ type: "setDifficulty", difficulty: d })}
+                  className={me?.difficulty === d ? "text-green-400" : "text-neutral-500"}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
           </div>
 
           <button
