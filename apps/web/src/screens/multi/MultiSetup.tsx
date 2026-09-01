@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import {
   INSTRUMENT_LANES,
-  PASSAGES,
   presentLanes,
   type Difficulty,
   type InstrumentLane,
@@ -13,6 +12,14 @@ import { frogById } from "../../characters";
 import { SongCard } from "../SongCard";
 
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
+const ICONS: Record<string, string> = {
+  vocals: "🎤",
+  drums: "🥁",
+  bass: "🎸",
+  guitar: "🎸",
+  piano: "🎹",
+  other: "🎶",
+};
 
 function Panel({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
@@ -62,9 +69,9 @@ export function MultiSetup({ room }: { room: Room }) {
   const isHost = snap.hostId === room.playerId;
   const song = songs?.find((s) => s.id === snap.songId) ?? null;
   const available = song ? new Set(presentLanes(song)) : new Set(INSTRUMENT_LANES);
-  const takenLanes = new Set(
-    snap.members.filter((m) => m.id !== room.playerId && m.instrument).map((m) => m.instrument),
-  );
+  const connected = snap.members.filter((m) => m.connected);
+  const readyCount = connected.filter((m) => m.ready && m.instrument).length;
+  const allReady = connected.length > 0 && readyCount === connected.length;
 
   // preview the song under your cursor, just like single-player
   const previewSong = !snap.songId ? (songs?.find((s) => s.id === me?.songCursor) ?? null) : null;
@@ -209,59 +216,36 @@ export function MultiSetup({ room }: { room: Room }) {
         </>
       ) : (
         <>
-          <Panel title={`song · ${song?.title ?? snap.songId}`}>
-            <div className="flex flex-col gap-4">
-              <div>
-                <div className="mb-2 text-[10px] uppercase tracking-widest text-cabinet-text/40">instrument</div>
-                <div className="flex flex-wrap gap-2">
-                  {INSTRUMENT_LANES.map((lane: InstrumentLane) => {
-                    const gone = (takenLanes.has(lane) || !available.has(lane)) && me.instrument !== lane;
-                    return (
-                      <Chip
-                        key={lane}
-                        active={me.instrument === lane}
-                        disabled={gone}
-                        title={!available.has(lane) ? "not in this song" : undefined}
-                        onClick={() => room.send({ type: "pickInstrument", instrument: lane })}
-                      >
-                        {lane}
-                      </Chip>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 text-[10px] uppercase tracking-widest text-cabinet-text/40">passage</div>
-                <div className="flex flex-wrap gap-2">
-                  {PASSAGES.map((p) => (
-                    <Chip
-                      key={p.id}
-                      active={me.passageId === p.id}
-                      onClick={() => room.send({ type: "pickPassage", passageId: p.id })}
-                    >
-                      {p.title}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 text-[10px] uppercase tracking-widest text-cabinet-text/40">difficulty</div>
-                <div className="flex flex-wrap gap-2">
-                  {DIFFICULTIES.map((d) => (
-                    <Chip
-                      key={d}
-                      active={me.difficulty === d}
-                      onClick={() => room.send({ type: "setDifficulty", difficulty: d })}
-                    >
-                      {d}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Panel>
+          {/* instrument grid — same as solo, taken lanes disable for the rest */}
+          <div className="grid w-full max-w-md grid-cols-3 gap-3 border-[3px] border-cabinet-frame bg-black/15 p-4 shadow-[8px_8px_0_var(--cab-shadow)]">
+            {INSTRUMENT_LANES.map((lane: InstrumentLane) => {
+              const inSong = available.has(lane);
+              const takenByOther = snap.members.some(
+                (m) => m.id !== room.playerId && m.connected && m.instrument === lane,
+              );
+              const active = me.instrument === lane;
+              const disabled = (!inSong || takenByOther) && !active;
+              return (
+                <button
+                  key={lane}
+                  disabled={disabled}
+                  onClick={() => room.send({ type: "pickInstrument", instrument: lane })}
+                  title={!inSong ? "not in this song" : takenByOther ? "taken" : undefined}
+                  className={
+                    "flex flex-col items-center gap-2 border-2 px-2 py-5 font-pixel transition-colors " +
+                    (active
+                      ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
+                      : disabled
+                        ? "cursor-not-allowed border-cabinet-border bg-cabinet-btn text-cabinet-text/25"
+                        : "border-cabinet-border bg-cabinet-btn text-cabinet-text hover:border-cabinet-accent")
+                  }
+                >
+                  <span className={"text-3xl " + (disabled ? "opacity-30 grayscale" : "")}>{ICONS[lane] ?? "🎵"}</span>
+                  <span className={"text-[10px] uppercase tracking-widest " + (disabled ? "line-through" : "")}>{lane}</span>
+                </button>
+              );
+            })}
+          </div>
 
           {isHost && (
             <button
@@ -272,32 +256,90 @@ export function MultiSetup({ room }: { room: Room }) {
             </button>
           )}
 
-          <button
-            disabled={!me.instrument}
-            onClick={() => room.send({ type: "ready", ready: !me.ready })}
-            className={
-              "w-full max-w-md border-2 px-5 py-4 text-sm uppercase tracking-widest transition-colors md:text-base " +
-              (me.ready
-                ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
-                : "border-cabinet-accent bg-transparent text-cabinet-accent hover:bg-cabinet-accent hover:text-cabinet-ink disabled:cursor-not-allowed disabled:border-cabinet-border disabled:text-cabinet-text/30")
-            }
-          >
-            {me.ready ? "✓ Ready" : "Ready Up"}
-          </button>
+          {/* the band — each member picks difficulty, audio, and readies up */}
+          <Panel title="the band">
+            <div className="flex flex-col gap-2">
+              {snap.members.map((m) => {
+                const mine = m.id === room.playerId;
+                const f = frogById(m.character?.faceId);
+                return (
+                  <div key={m.id} className="border-2 border-cabinet-border bg-cabinet-btn p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2 text-xs">
+                        {f && <img src={f.image} alt="" className="h-6 w-6 shrink-0 object-contain" />}
+                        <span className="truncate">
+                          {m.id === snap.hostId ? "★ " : ""}
+                          {m.name}
+                          {mine ? " (you)" : ""}
+                          <span className="text-cabinet-text/40"> · {m.instrument ?? "no instrument"}</span>
+                        </span>
+                      </span>
+                      {mine ? (
+                        <button
+                          disabled={!m.instrument}
+                          onClick={() => room.send({ type: "ready", ready: !m.ready })}
+                          className={
+                            "shrink-0 border-2 px-3 py-1.5 text-[10px] uppercase tracking-widest transition-colors " +
+                            (m.ready
+                              ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
+                              : "border-cabinet-accent bg-transparent text-cabinet-accent hover:bg-cabinet-accent hover:text-cabinet-ink disabled:cursor-not-allowed disabled:border-cabinet-border disabled:text-cabinet-text/30")
+                          }
+                        >
+                          {m.ready ? "✓ Ready" : "Ready"}
+                        </button>
+                      ) : (
+                        <span
+                          className={
+                            "shrink-0 text-[10px] uppercase tracking-widest " +
+                            (m.ready ? "text-cabinet-accent" : "text-cabinet-text/30")
+                          }
+                        >
+                          {m.ready ? "ready" : "…"}
+                        </span>
+                      )}
+                    </div>
+
+                    {mine ? (
+                      <div className="mt-3 flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-1">
+                          {DIFFICULTIES.map((d) => (
+                            <Chip
+                              key={d}
+                              active={m.difficulty === d}
+                              onClick={() => room.send({ type: "setDifficulty", difficulty: d })}
+                            >
+                              {d}
+                            </Chip>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Chip active={m.audioOutput} onClick={() => room.send({ type: "setAudioOutput", on: true })}>
+                            Play audio
+                          </Chip>
+                          <Chip active={!m.audioOutput} onClick={() => room.send({ type: "setAudioOutput", on: false })}>
+                            No audio (same room)
+                          </Chip>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-text/40">
+                        {m.difficulty} · {m.audioOutput ? "🔊 audio" : "muted"}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Panel>
 
           {isHost && (
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex gap-2">
-                <Chip onClick={() => room.send({ type: "setMode", mode: "shared" })}>shared audio</Chip>
-                <Chip onClick={() => room.send({ type: "setMode", mode: "distributed" })}>distributed audio</Chip>
-              </div>
-              <button
-                onClick={() => room.send({ type: "proposeStart" })}
-                className="border-2 border-cabinet-accent bg-cabinet-accent px-8 py-4 text-base uppercase tracking-widest text-cabinet-ink transition-colors hover:bg-[#ffcf5a]"
-              >
-                ▶ Start the Show
-              </button>
-            </div>
+            <button
+              disabled={!allReady}
+              onClick={() => room.send({ type: "proposeStart" })}
+              className="w-full max-w-md border-2 border-cabinet-accent bg-cabinet-accent px-8 py-5 text-base uppercase tracking-widest text-cabinet-ink transition-colors hover:bg-[#ffcf5a] disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30"
+            >
+              {allReady ? "▶ Start the Show" : `waiting · ${readyCount}/${connected.length} ready`}
+            </button>
           )}
         </>
       )}

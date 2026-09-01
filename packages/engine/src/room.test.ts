@@ -275,3 +275,13 @@ describe("clearSong", () => {
     expect(s.songId).toBe("chocolate");
   });
 });
+
+describe("per-member audio output", () => {
+  it("member toggles their own audio output", () => {
+    let s = lobbyWith("a", "b");
+    expect(s.members[1]!.audioOutput).toBe(false);
+    s = run(s, { t: "setAudioOutput", id: "b", on: true });
+    expect(s.members[1]!.audioOutput).toBe(true);
+    expect(s.members[0]!.audioOutput).toBe(false);
+  });
+});

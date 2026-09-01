@@ -47,6 +47,7 @@ export type RoomAction =
   | { t: "setSongCursor"; id: string; songId: string }
   | { t: "voteSong"; id: string; songId: string }
   | { t: "ready"; id: string; ready: boolean }
+  | { t: "setAudioOutput"; id: string; on: boolean }
   | { t: "proposeSong"; id: string; songId: string; durationMs: number }
   | { t: "confirmSong"; id: string }
   | { t: "proposeStart"; id: string }
@@ -190,6 +191,9 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
       if (!m || m.instrument === null) return state;
       return mapMember(state, action.id, (x) => ({ ...x, ready: action.ready }));
     }
+
+    case "setAudioOutput":
+      return mapMember(state, action.id, (m) => ({ ...m, audioOutput: action.on }));
 
     case "proposeSong": {
       const proposal: SongProposal = {

@@ -197,6 +197,8 @@ export class GameRoom extends DurableObject<Env> {
         return { t: "voteSong", id, songId: msg.songId };
       case "ready":
         return { t: "ready", id, ready: msg.ready };
+      case "setAudioOutput":
+        return { t: "setAudioOutput", id, on: msg.on };
       case "proposeSong":
         return { t: "proposeSong", id, songId: msg.songId, durationMs: msg.durationMs };
       case "confirmSong":

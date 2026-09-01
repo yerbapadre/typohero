@@ -14,6 +14,7 @@ export type ClientMsg =
   | { type: "setSongCursor"; songId: string }
   | { type: "voteSong"; songId: string }
   | { type: "ready"; ready: boolean }
+  | { type: "setAudioOutput"; on: boolean }
   | { type: "stats"; stat: LiveStat }
   | { type: "proposeSong"; songId: string; durationMs: number }
   | { type: "confirmSong" }
