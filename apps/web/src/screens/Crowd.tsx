@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRoom } from "../net/useRoom";
+import { useSongs } from "../net/useSongs";
 import { CROWD_FROG_IMAGE } from "../characters";
 import { CabinetPage } from "../ui/CabinetPage";
 import { Playground } from "./multi/Playground";
-import { Roster } from "./multi/Roster";
+import { StageView } from "./multi/StageView";
 import { MultiResults } from "./multi/MultiResults";
 
 const NAME_KEY = "typohero:name";
@@ -137,7 +138,9 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
   const navigate = useNavigate();
   const [spectatorId] = useState(() => crypto.randomUUID());
   const room = useRoom(roomId, name, true, undefined, spectatorId);
+  const songs = useSongs();
   const snap = room.snapshot;
+  const song = songs?.find((s) => s.id === snap?.songId) ?? null;
 
   const onMove = useCallback(
     (x: number, y: number, facing: -1 | 1) => room.send({ type: "move", x, y, facing }),
@@ -159,16 +162,18 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
 
   if (snap.phase === "playing" || snap.phase === "countdown") {
     return (
-      <div className="flex min-h-screen flex-col items-center gap-8 bg-cabinet-bg py-16 font-pixel text-cabinet-text">
-        <div className="text-2xl font-bold uppercase tracking-widest text-cabinet-accent">Now Playing</div>
-        <Roster members={snap.members} frame={room.frame} youId={null} />
-        <button
-          className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
-          onClick={() => navigate("/")}
-        >
-          ← Leave crowd
-        </button>
-      </div>
+      <StageView
+        roomId={roomId}
+        snapshot={snap}
+        frame={room.frame}
+        song={song}
+        youId={null}
+        crowd={room.crowd}
+        crowdYouId={spectatorId}
+        crowdYouName={name}
+        onMove={onMove}
+        controllableCrowd
+      />
     );
   }
 

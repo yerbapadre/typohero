@@ -165,5 +165,5 @@ function RoomView({ roomId, name }: { roomId: string; name: string }) {
   if (room.snapshot.phase === "setup") {
     return <MultiSetup room={room} />;
   }
-  return <MultiPerformance room={room} />;
+  return <MultiPerformance roomId={roomId} room={room} />;
 }
