@@ -478,10 +478,7 @@ function PadButton({
 
 function Gamepad({ press, release }: WalkControls) {
   return (
-    <div
-      className="pointer-events-none absolute left-3 z-30 flex items-end gap-2 md:hidden"
-      style={{ bottom: `calc(${GROUND}% + 92px)` }}
-    >
+    <div className="pointer-events-none absolute left-3 top-4 z-30 flex items-end gap-2 md:hidden">
       <PadButton label="◀" keyName="arrowleft" press={press} release={release} className="pointer-events-auto" />
       <PadButton label="▶" keyName="arrowright" press={press} release={release} className="pointer-events-auto" />
       <PadButton label="▲" keyName="arrowup" press={press} release={release} className="pointer-events-auto ml-1" />
