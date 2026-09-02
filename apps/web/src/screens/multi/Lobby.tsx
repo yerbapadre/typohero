@@ -16,6 +16,7 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   const navigate = useNavigate();
   const snap = room.snapshot!;
   const me = snap.members.find((m) => m.id === room.playerId);
+  const directing = me?.director ?? false;
   const songs = useSongs();
 
   // What the pit is chanting for while you're still picking frogs.
@@ -62,6 +63,8 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
     return <CabinetStatus>entering {roomId}…</CabinetStatus>;
   }
 
+  const band = snap.members.filter((m) => !m.director);
+  const directors = snap.members.filter((m) => m.director);
   const myFrog = frogById(me.character?.faceId) ?? FROGS[0]!;
   const viewFrog = FROGS[view]!;
   const viewLocked = !isUnlocked(viewFrog.id);
@@ -89,9 +92,9 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
 
       <div className="grid w-full max-w-4xl grid-cols-1 gap-5 md:grid-cols-2">
         {/* bandmates */}
-        <CabinetPanel tight title={`bandmates · ${snap.members.length}`} className="flex h-full flex-col">
+        <CabinetPanel tight title={`bandmates · ${band.length}`} className="flex h-full flex-col">
           <div className="flex flex-col gap-2">
-            {snap.members.map((m) => {
+            {[...band, ...directors].map((m) => {
               const f = frogById(m.character?.faceId);
               return (
                 <div
@@ -115,6 +118,7 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
                     {m.id === snap.hostId ? "★ " : ""}
                     {m.name}
                     {m.id === room.playerId ? " (you)" : ""}
+                    {m.director ? <span className="text-cabinet-text/40"> · 🎛 director</span> : null}
                   </span>
                 </div>
               );
@@ -133,7 +137,23 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
           )}
         </CabinetPanel>
 
-        {/* your frog */}
+        {/* your frog — or the desk, if you're running the show */}
+        {directing ? (
+          <CabinetPanel tight title="the desk" className="flex h-full flex-col">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+              <div className="text-4xl">🎛</div>
+              <div className="text-[11px] uppercase tracking-widest text-cabinet-accent">directing</div>
+              <div className="max-w-[16rem] font-mono text-[10px] normal-case text-cabinet-text/50">
+                you run the song, the note style and the sound. no frog on stage, no lane to type.
+              </div>
+            </div>
+            <div className="mt-3 border-t-2 border-cabinet-frame pt-3">
+              <CabinetButton full onClick={() => room.send({ type: "setDirector", on: false })}>
+                🎸 Join the band instead
+              </CabinetButton>
+            </div>
+          </CabinetPanel>
+        ) : (
         <CabinetPanel tight title="your frog" className="flex h-full flex-col">
           <div className="flex flex-1 items-center justify-center gap-4">
             <CarouselArrow dir="prev" label="previous frog" onClick={() => moveView(-1)} />
@@ -166,7 +186,13 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
               </div>
             </div>
           )}
+          <div className="mt-3 border-t-2 border-cabinet-frame pt-3">
+            <CabinetButton full onClick={() => room.send({ type: "setDirector", on: true })}>
+              🎛 Direct instead — stay off the stage
+            </CabinetButton>
+          </div>
         </CabinetPanel>
+        )}
       </div>
 
       <div className="w-full">
@@ -175,9 +201,10 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
           youId={room.playerId}
           youName={me.name}
           youImage={myFrog.image}
-          members={snap.members}
+          members={band}
           positions={room.positions}
           onMove={onMove}
+          youOnStage={!directing}
           bandName={roomId}
           crowd={room.crowd}
         />
@@ -218,9 +245,12 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
           size="hero"
           full
           className="max-w-4xl"
+          disabled={band.length === 0}
           onClick={() => room.send({ type: "lockIn" })}
         >
-          🎸 Lock In the Band — {snap.members.length} {snap.members.length === 1 ? "frog" : "frogs"}
+          {band.length === 0
+            ? "waiting for a frog to join the band…"
+            : `🎸 Lock In the Band — ${band.length} ${band.length === 1 ? "frog" : "frogs"}`}
         </CabinetButton>
       ) : (
         <div className="w-full max-w-4xl border-[3px] border-cabinet-frame bg-black/15 px-6 py-6 text-center text-sm uppercase tracking-[0.2em] text-cabinet-text/50">

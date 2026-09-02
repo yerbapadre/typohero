@@ -41,7 +41,9 @@ export type ReactionKind = "heart" | "smile" | "star";
 export const REACTION_KINDS: readonly ReactionKind[] = ["heart", "smile", "star"];
 
 export type ClientMsg =
-  | { type: "join"; name: string; character?: Character; reconnectToken?: string }
+  // `director` opts you out of the band: you run the show from the desk and
+  // never take a lane or a spot on the riser.
+  | { type: "join"; name: string; character?: Character; reconnectToken?: string; director?: boolean }
   | { type: "spectate"; name?: string; id?: string; observer?: boolean }
   | { type: "move"; x: number; y: number; facing: -1 | 1 }
   // Sent once when a spectator changes shirts — never on the movement path.
@@ -59,6 +61,7 @@ export type ClientMsg =
   | { type: "voteSong"; songId: string }
   | { type: "ready"; ready: boolean }
   | { type: "setAudioOutput"; on: boolean }
+  | { type: "setDirector"; on: boolean }
   | { type: "stats"; stat: LiveStat }
   | { type: "proposeSong"; songId: string; durationMs: number }
   | { type: "confirmSong" }

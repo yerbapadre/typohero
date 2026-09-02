@@ -134,7 +134,7 @@ function PreShow({
   wardrobe: Record<string, WornShirt>;
   songs: Song[] | null;
 }) {
-  const band = snapshot.members.filter((m) => m.connected);
+  const band = snapshot.members.filter((m) => m.connected && !m.director);
 
   // The pit's running vote, up on the big screen until the band commits.
   const pick = snapshot.songId ? null : leadingCrowdPick(crowd);

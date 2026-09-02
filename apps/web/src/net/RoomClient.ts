@@ -33,6 +33,8 @@ export class RoomClient {
     private character?: Character,
     private spectatorId?: string,
     private observer = false,
+    /** Join to run the show rather than to play: no lane, no frog on the riser. */
+    private director = false,
   ) {}
 
   connect(): void {
@@ -43,7 +45,13 @@ export class RoomClient {
         this.send({ type: "spectate", name: this.name, id: this.spectatorId, observer: this.observer });
       } else {
         const reconnectToken = localStorage.getItem(this.tokenKey()) ?? undefined;
-        this.send({ type: "join", name: this.name, character: this.character, reconnectToken });
+        this.send({
+          type: "join",
+          name: this.name,
+          character: this.character,
+          reconnectToken,
+          director: this.director,
+        });
       }
       this.events.onOpen?.();
     });
