@@ -16,7 +16,8 @@ Polish and juice pass before the show. See `ROADMAP.md` for architecture/status.
       (started: performers react to their own lane — star power, wobble, anger on a miss)
 - [ ] Things for the crowd to do during the show (they can walk + cheer now; needs activities)
 - [ ] Animate frogs filing into the stage area
-- [ ] Funny crowd activities during performance (merch stand, bar)
+- [x] Funny crowd activities during performance (merch stand, bar) — LeCoin store: walk up,
+      press enter or click, buy something, and carry it above your frog
 - [x] Seed the concert area with a bunch of NPC frogs (two rows in the stage pit)
 
 ## Screens / UI

@@ -16,6 +16,15 @@ binding = "SONGS"
 bucket_name = "typohero-songs"
 preview_bucket_name = "typohero-songs"
 
+# LeCoin store: wallets, product catalog, and the transaction ledger.
+# Local `wrangler dev` uses its own on-disk D1 and ignores the id; see README
+# for applying migrations to either.
+[[d1_databases]]
+binding = "DB"
+database_name = "typohero"
+database_id = "a2b687c9-a988-4536-b8bd-7a8a23fba6b4"
+migrations_dir = "migrations"
+
 [[durable_objects.bindings]]
 name = "GAME_ROOM"
 class_name = "GameRoom"

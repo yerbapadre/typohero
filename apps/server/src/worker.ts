@@ -1,10 +1,13 @@
 import { GameRoom } from "./GameRoom";
+import { getOrCreateWallet, listProducts, purchase } from "./store";
 
 export { GameRoom };
 
 interface Env {
   GAME_ROOM: DurableObjectNamespace<GameRoom>;
   SONGS: R2Bucket;
+  /** LeCoin store: wallets, product catalog, transaction ledger. */
+  DB: D1Database;
   ASSETS: Fetcher;
   UPLOAD_TOKEN: string;
   /** Premium frog codes: "frogId:CODE,frogId:CODE". Unset = no frogs unlockable. */
@@ -50,6 +53,33 @@ export default {
       const frogId = code ? frogForCode(env.UNLOCK_CODES ?? "", code.trim()) : null;
       if (!frogId) return json({ ok: false }, 403);
       return json({ ok: true, frogId });
+    }
+
+    // --- LeCoin store -----------------------------------------------------
+    // Open, like /api/songs: main removed the server-side session gate, so
+    // there is nothing left to check against here.
+
+    if (path === "/api/store/products" && request.method === "GET") {
+      return json(await listProducts(env.DB));
+    }
+
+    if (path === "/api/store/wallet" && request.method === "POST") {
+      const { username } = (await request.json().catch(() => ({}))) as { username?: string };
+      const wallet = username ? await getOrCreateWallet(env.DB, username) : null;
+      if (!wallet) return json({ ok: false, error: "bad_username" }, 400);
+      return json(wallet);
+    }
+
+    if (path === "/api/store/purchase" && request.method === "POST") {
+      const { username, productId } = (await request.json().catch(() => ({}))) as {
+        username?: string;
+        productId?: string;
+      };
+      if (!username || !productId) return json({ ok: false, error: "bad_request" }, 400);
+      const result = await purchase(env.DB, username, productId);
+      if (!result) return json({ ok: false, error: "bad_username" }, 400);
+      if (!result.ok) return json(result, result.error === "unknown_product" ? 404 : 402);
+      return json(result);
     }
 
     const put = path.match(/^\/api\/songs\/([^/]+)\/([^/]+)$/);

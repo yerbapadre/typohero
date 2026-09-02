@@ -22,15 +22,17 @@ import { SetlistVote } from "./multi/SetlistVote";
 import { StageView } from "./multi/StageView";
 import { MultiResults } from "./multi/MultiResults";
 
-const NAME_KEY = "typohero:name";
+// The username is the wallet key for the pit booths as well as the nameplate,
+// so it lives in localStorage — coins should survive closing the tab.
+const NAME_KEY = "typohero:username";
 
 export function CrowdEntry() {
   const navigate = useNavigate();
-  const [name, setName] = useState(() => sessionStorage.getItem(NAME_KEY) ?? "");
+  const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? "");
   const [code, setCode] = useState("");
 
   function watch() {
-    sessionStorage.setItem(NAME_KEY, name);
+    localStorage.setItem(NAME_KEY, name);
     navigate(`/crowd/${code}`);
   }
 
@@ -48,7 +50,7 @@ export function CrowdEntry() {
 
       <CabinetPanel className="w-full max-w-md">
         <div className="flex flex-col gap-5">
-          <CabinetField label="Your name">
+          <CabinetField label="Username">
             <CabinetInput
               autoFocus
               value={name}
@@ -84,7 +86,7 @@ export function CrowdView() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const roomId = (code ?? "").toUpperCase();
-  const [name, setName] = useState(() => sessionStorage.getItem(NAME_KEY) ?? "");
+  const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? "");
 
   if (!name) {
     return (
@@ -93,7 +95,7 @@ export function CrowdView() {
         cta={`Watch ${roomId} →`}
         onBack={() => navigate("/")}
         onSubmit={(next) => {
-          sessionStorage.setItem(NAME_KEY, next);
+          localStorage.setItem(NAME_KEY, next);
           setName(next);
         }}
       />
@@ -174,6 +176,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         wardrobe={room.wardrobe}
         crowdYouId={spectatorId}
         crowdYouName={name}
+        crowdUsername={name}
         onMove={onMove}
         onEquip={onEquip}
         onEmote={onEmote}

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { CrowdItem, EmoteKind, WornShirt } from "@typohero/protocol";
+import type { Booth, Product } from "@typohero/engine";
 import type { CrowdMember, Emote } from "../../net/useRoom";
 import { CROWD_FROG_IMAGE } from "../../characters";
 import { CrowdFrog } from "../../ui/CrowdFrog";
@@ -7,6 +8,8 @@ import { useCrowdWalk } from "../../game/useCrowdWalk";
 import { MerchShop } from "../../merch/MerchShop";
 import { SpriteShirt } from "../../merch/SpriteShirt";
 import { useWorn } from "../../merch/shirts";
+import { useStore } from "../../net/useStore";
+import { LeCoin, StoreMenu } from "./StoreMenu";
 
 // The pit along the front of the stage. Spectators walk their own frog here
 // while the band plays; NPCs keep it full even when nobody has joined yet.
@@ -15,9 +18,10 @@ const ZONE = { min: 3, max: 97 };
 const NPC_COUNT = 18;
 
 // Hangout spots that line the pit. Each is a pixel-cabinet prop a spectator can
-// walk up to and press Enter on. Merch opens the shirt press; the rest are
-// still stubs behind the same proximity/Enter plumbing.
-export type SpotId = "merch" | "bar" | "recs";
+// walk up to and press Enter on, or click from anywhere. Merch opens the
+// shirt press; a spot id doubles as the booth a product belongs to, so a
+// store menu is just the catalog filtered by it.
+export type SpotId = Booth;
 type Spot = { id: SpotId; label: string; x: number; render: () => ReactNode };
 
 // How close (in pit-percent) your frog has to stand to trigger a spot.
@@ -46,12 +50,24 @@ function bobDuration(energy: number, offset = 0): string {
   return `${(1.55 - Math.max(0, Math.min(1, energy)) * 0.85 + offset).toFixed(2)}s`;
 }
 
-// What a frog carries after a bar visit. A tumbler with an amber pour, or a
-// pizza slice (clip-path triangle, tip down) with pepperoni. Off-palette reds
-// on the pizza so it reads as food, same trick as the DietCoke prop.
-const ITEM_LABEL: Record<CrowdItem, string> = { drink: "Drink", pizza: "Pizza" };
 
-function HeldItem({ item }: { item: CrowdItem }) {
+function HeldItem({ item, product }: { item: CrowdItem; product?: Product | null }) {
+  // A bought item carries its own art; "drink" and "pizza" are drawn by hand.
+  if (product) {
+    return product.icon.startsWith("/") ? (
+      <img
+        src={product.icon}
+        alt=""
+        title={product.name}
+        draggable={false}
+        className="h-9 w-auto object-contain"
+      />
+    ) : (
+      <span title={product.name} className="text-lg leading-none">
+        {product.icon}
+      </span>
+    );
+  }
   if (item === "drink") {
     return (
       <span className="relative block h-6 w-4 border border-black bg-white/10">
@@ -61,6 +77,7 @@ function HeldItem({ item }: { item: CrowdItem }) {
       </span>
     );
   }
+  if (item !== "pizza") return null;
   return (
     <span className="relative block h-6 w-6" style={{ clipPath: "polygon(0 0, 100% 0, 50% 100%)" }}>
       <span className="absolute inset-0 bg-cabinet-accent" />
@@ -345,14 +362,29 @@ function RecsTable() {
   );
 }
 
-function SpotProp({ spot }: { spot: Spot }) {
+// Clicking a booth opens it from anywhere in the pit. Walking into range first
+// is the keyboard path; making the mouse obey the same reach just reads broken.
+function SpotProp({ spot, onOpen }: { spot: Spot; onOpen?: () => void }) {
+  const inner = <div className="pointer-events-none">{spot.render()}</div>;
+  if (!onOpen) {
+    return (
+      <div
+        className="pointer-events-none absolute -translate-x-1/2"
+        style={{ left: `${spot.x}%`, bottom: `${GROUND}%` }}
+      >
+        {inner}
+      </div>
+    );
+  }
   return (
-    <div
-      className="pointer-events-none absolute -translate-x-1/2"
+    <button
+      onClick={onOpen}
+      aria-label={`open ${spot.label}`}
+      className="absolute -translate-x-1/2 cursor-pointer hover:outline hover:outline-2 hover:outline-cabinet-accent"
       style={{ left: `${spot.x}%`, bottom: `${GROUND}%` }}
     >
-      {spot.render()}
-    </div>
+      {inner}
+    </button>
   );
 }
 
@@ -366,79 +398,6 @@ function InteractPrompt({ x }: { x: number }) {
         Enter
       </div>
       <span className="text-[10px] leading-none text-cabinet-accent">▾</span>
-    </div>
-  );
-}
-
-// The bar's Enter menu: grab a drink or a slice, or set it back down by
-// tapping the one you already hold. The pick rides the crowd channel so every
-// machine sees you carry it.
-function BarPanel({
-  equipped,
-  onPick,
-  onClose,
-}: {
-  equipped: CrowdItem | null;
-  onPick: (item: CrowdItem | null) => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="absolute inset-0 z-30 grid place-items-center bg-black/50">
-      <div className="border-[3px] border-cabinet-accent bg-cabinet-bg px-8 py-6 text-center shadow-[8px_8px_0_#6b4e18]">
-        <div className="text-sm uppercase tracking-widest text-cabinet-accent">Bar</div>
-        <div className="mt-1 font-mono text-[11px] lowercase tracking-wide text-cabinet-text/60">
-          grab something for the show
-        </div>
-        <div className="mt-5 flex gap-4">
-          {(["drink", "pizza"] as const).map((it) => {
-            const on = equipped === it;
-            return (
-              <button
-                key={it}
-                onClick={() => onPick(on ? null : it)}
-                className={
-                  "flex w-28 flex-col items-center gap-2 border-2 px-4 py-4 text-[11px] uppercase tracking-widest " +
-                  (on
-                    ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
-                    : "border-cabinet-border bg-cabinet-btn text-cabinet-text hover:border-cabinet-accent")
-                }
-              >
-                <HeldItem item={it} />
-                <span>{on ? "Put down" : ITEM_LABEL[it]}</span>
-              </button>
-            );
-          })}
-        </div>
-        <button
-          onClick={onClose}
-          className="mt-5 border-2 border-cabinet-border bg-cabinet-btn px-4 py-2 text-[10px] uppercase tracking-widest text-cabinet-text hover:border-cabinet-accent"
-        >
-          Esc · close
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function InteractPanel({ spot, onClose }: { spot: Spot; onClose: () => void }) {
-  // Merch is built: it takes over the screen, since the pit strip is far too
-  // short to paint in.
-  if (spot.id === "merch") return <MerchShop onClose={onClose} />;
-
-  return (
-    <div className="absolute inset-0 z-30 grid place-items-center bg-black/50">
-      <div className="border-[3px] border-cabinet-accent bg-cabinet-bg px-8 py-6 text-center shadow-[8px_8px_0_#6b4e18]">
-        <div className="text-sm uppercase tracking-widest text-cabinet-accent">{spot.label}</div>
-        <div className="mt-2 font-mono text-[11px] lowercase tracking-wide text-cabinet-text/70">
-          coming soon
-        </div>
-        <button
-          onClick={onClose}
-          className="mt-4 border-2 border-cabinet-border bg-cabinet-btn px-4 py-2 text-[10px] uppercase tracking-widest text-cabinet-text hover:border-cabinet-accent"
-        >
-          Esc · close
-        </button>
-      </div>
     </div>
   );
 }
@@ -473,6 +432,7 @@ function PitFrog({
   shirt,
   item,
   emote,
+  product,
 }: {
   name?: string;
   x: number;
@@ -488,6 +448,8 @@ function PitFrog({
   shirt?: WornShirt | null;
   item?: CrowdItem;
   emote?: Emote;
+  /** Catalog entry for `item`, when it is a product id rather than a built-in. */
+  product?: Product | null;
 }) {
   const airborne = y > 0.4;
   const visualDir = flip ? -facing : facing;
@@ -505,7 +467,7 @@ function PitFrog({
           woo
         </span>
       )}
-      {name && (
+            {name && (
         <span
           className={
             "mb-1 max-w-[80px] truncate border px-1 py-0.5 text-[8px] uppercase tracking-widest " +
@@ -540,7 +502,7 @@ function PitFrog({
         </div>
         {item && (
           <div className="absolute" style={{ bottom: 14, [visualDir > 0 ? "right" : "left"]: -2 }}>
-            <HeldItem item={item} />
+            <HeldItem item={item} product={product} />
           </div>
         )}
         {emote?.kind === "confetti" && <Confetti key={emote.id} id={emote.id} />}
@@ -554,6 +516,7 @@ export function CrowdFloor({
   wardrobe = {},
   youId,
   youName,
+  username,
   controllable,
   onMove,
   onInteract,
@@ -567,6 +530,8 @@ export function CrowdFloor({
   wardrobe?: Record<string, WornShirt>;
   youId: string | null;
   youName?: string;
+  /** Wallet key. Without one the booths still open, but nothing can be bought. */
+  username?: string | null;
   controllable: boolean;
   onMove?: (x: number, y: number, facing: -1 | 1) => void;
   // Fired when you press Enter in front of a spot. Merch/recs aren't built yet;
@@ -596,12 +561,22 @@ export function CrowdFloor({
     onMove: onMove ?? (() => {}),
   });
 
+  const store = useStore(controllable ? username ?? null : null);
   const others = crowd.filter((c) => c.id !== youId);
 
   // The most recent flourish still animating on a given frog, if any. Latest
   // wins, so mashing 1/2/3 just replaces whatever was playing.
   const emoteFor = (id?: string | null) =>
     id ? [...emotes].reverse().find((e) => e.crowdId === id) : undefined;
+  // Crowd members broadcast a product id; every client has the catalog, so the
+  // art is a lookup rather than anything extra on the wire.
+  const byId = useMemo(() => {
+    const m = new Map<string, Product>();
+    for (const p of store.products ?? []) m.set(p.id, p);
+    return m;
+  }, [store.products]);
+  const held = (id: string | null | undefined) => (id ? byId.get(id) ?? null : null);
+
 
   // The spot you're standing in front of (grounded and within reach), if any.
   const nearSpot =
@@ -616,27 +591,40 @@ export function CrowdFloor({
     onEquip?.(item);
   };
 
+  function openSpot(spot: Spot) {
+    setActive(spot);
+    onInteract?.(spot.id);
+  }
+
+  // A purchase is just an equip whose item is a product id, so what you
+  // bought rides the same crowd channel as a drink grabbed at the bar.
+  async function buy(productId: string) {
+    if (!(await store.buy(productId))) return;
+    equip(productId);
+  }
+
   // Enter opens the spot you're near; Escape closes an open one. Enter isn't in
   // the walker's keymap, so listening here doesn't fight the movement handler.
   const nearRef = useRef(nearSpot);
   nearRef.current = nearSpot;
   const interactRef = useRef(onInteract);
   interactRef.current = onInteract;
-  const openRef = useRef(active);
-  openRef.current = active;
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  const openRef = useRef(openSpot);
+  openRef.current = openSpot;
   const emoteRef = useRef(onEmote);
   emoteRef.current = onEmote;
   useEffect(() => {
     if (!controllable) return;
     function onKey(e: KeyboardEvent) {
       const emoteKind = EMOTE_KEY[e.key];
-      if (emoteKind && !openRef.current) {
+      if (emoteKind && !activeRef.current) {
         e.preventDefault();
         emoteRef.current?.(emoteKind);
-      } else if (e.key === "Enter" && nearRef.current && !openRef.current) {
+      } else if (e.key === "Enter" && nearRef.current && !activeRef.current) {
         e.preventDefault();
-        setActive(nearRef.current);
-        interactRef.current?.(nearRef.current.id);
+        openRef.current(nearRef.current);
       } else if (e.key === "Escape") {
         setActive(null);
       }
@@ -655,7 +643,7 @@ export function CrowdFloor({
       />
 
       {SPOTS.map((s) => (
-        <SpotProp key={s.id} spot={s} />
+        <SpotProp key={s.id} spot={s} onOpen={controllable ? () => openSpot(s) : undefined} />
       ))}
 
       {NPCS.map((npc, i) => (
@@ -685,6 +673,7 @@ export function CrowdFloor({
           flip
           item={c.item}
           emote={emoteFor(c.id)}
+          product={held(c.item)}
         />
       ))}
 
@@ -696,25 +685,37 @@ export function CrowdFloor({
           facing={you.facing}
           energy={energy}
           shirt={yourShirt}
+          item={equipped ?? undefined}
+          product={held(equipped)}
+          emote={emoteFor(youId)}
           you
           flip
           smooth={false}
-          item={equipped ?? undefined}
-          emote={emoteFor(youId)}
         />
       )}
 
       {nearSpot && !active && <InteractPrompt x={nearSpot.x} />}
 
-      {active?.id === "bar" ? (
-        <BarPanel equipped={equipped} onPick={equip} onClose={() => setActive(null)} />
+      {active?.id === "merch" ? (
+        <MerchShop onClose={() => setActive(null)} />
       ) : (
-        active && <InteractPanel spot={active} onClose={() => setActive(null)} />
+        active && (
+          <StoreMenu
+            label={active.label}
+            products={store.products?.filter((p) => p.booth === active.id) ?? null}
+            store={store}
+            onBuy={buy}
+            onClose={() => setActive(null)}
+          />
+        )
       )}
 
-      <div className="pointer-events-none absolute bottom-1 right-2 text-[9px] uppercase tracking-widest text-cabinet-text/35">
-        👥 {crowd.length}
-        {controllable && " · ← → run · space cheer · enter interact · 1/2/3 emote"}
+      <div className="pointer-events-none absolute bottom-1 right-2 flex items-center gap-2 text-[9px] uppercase tracking-widest text-cabinet-text/35">
+        {store.wallet && <LeCoin amount={store.wallet.balance} className="text-cabinet-accent" />}
+        <span>
+          👥 {crowd.length}
+          {controllable && " · ← → run · space cheer · enter interact · 1/2/3 emote"}
+        </span>
       </div>
     </div>
   );

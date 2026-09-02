@@ -13,3 +13,4 @@ export * from "./scoring";
 export * from "./quality";
 export * from "./room";
 export * from "./stage";
+export * from "./store";
