@@ -7,6 +7,7 @@ import { homeXPercent, RISER_ZONE } from "../../render/stage/performers";
 import { useStageScene, type LocalLane } from "../../game/useStageScene";
 import { useStageWalk } from "../../game/useStageWalk";
 import { useCountIn } from "../../game/useCountIn";
+import { CountIn } from "../../ui/cabinet";
 import { CrowdFloor } from "./CrowdFloor";
 
 // The shared stage: the same lane highway on every machine, the band's frogs
@@ -104,14 +105,7 @@ export function StageView({
 
         {waiting && (
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
-            <div className="border-[3px] border-cabinet-accent bg-cabinet-bg/90 px-10 py-6 text-center shadow-[8px_8px_0_var(--cab-shadow)]">
-              <div className="text-xs uppercase tracking-[0.4em] text-cabinet-text/50">
-                count in
-              </div>
-              <div className="mt-2 text-5xl tracking-widest text-cabinet-accent md:text-7xl">
-                {Math.ceil(remainingMs / 1000)}
-              </div>
-            </div>
+            <CountIn label="count in" value={Math.ceil(remainingMs / 1000)} />
           </div>
         )}
 

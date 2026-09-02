@@ -4,6 +4,7 @@ import { useNav } from "../nav/NavContext";
 import { useSongs } from "../net/useSongs";
 import { useSongPreview } from "../game/useSongPreview";
 import { CabinetPage } from "../ui/CabinetPage";
+import { CabinetPanel, WizardNav } from "../ui/cabinet";
 import { SongCard } from "./SongCard";
 
 export function SongSelection() {
@@ -46,8 +47,9 @@ export function SongSelection() {
         </>
       }
     >
-      <div
-        className="flex max-h-[52vh] w-full max-w-md flex-col gap-2 overflow-y-auto border-[3px] border-cabinet-frame bg-black/15 p-4 shadow-[8px_8px_0_var(--cab-shadow)]"
+      <CabinetPanel
+        tight
+        className="flex max-h-[52vh] w-full max-w-md flex-col gap-2 overflow-y-auto"
         onMouseLeave={() => setPreviewId(null)}
       >
         {songs === null ? (
@@ -65,23 +67,14 @@ export function SongSelection() {
             />
           ))
         )}
-      </div>
+      </CabinetPanel>
 
-      <div className="mt-2 flex w-full max-w-md gap-3">
-        <button
-          className="border-2 border-cabinet-border bg-cabinet-btn px-5 py-4 text-sm uppercase tracking-widest text-cabinet-text transition-colors hover:border-cabinet-accent"
-          onClick={() => navigate("/solo/character")}
-        >
-          ← Back
-        </button>
-        <button
-          disabled={!config.songId}
-          onClick={() => navigate("/solo/instrument")}
-          className="flex-1 border-2 border-cabinet-accent bg-cabinet-accent px-5 py-4 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
-        >
-          Next: Instrument →
-        </button>
-      </div>
+      <WizardNav
+        onBack={() => navigate("/solo/character")}
+        onNext={() => navigate("/solo/instrument")}
+        nextLabel="Next: Instrument →"
+        nextDisabled={!config.songId}
+      />
     </CabinetPage>
   );
 }

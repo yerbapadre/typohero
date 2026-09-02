@@ -1,30 +1,8 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../theme/useTheme";
 import { frogFor } from "../theme/themes";
-
-function CabinetButton({
-  label,
-  selected,
-  onClick,
-  onMouseEnter,
-}: {
-  label: string;
-  selected: boolean;
-  onClick?: () => void;
-  onMouseEnter?: () => void;
-}) {
-  const base =
-    "w-full cursor-pointer border-2 px-5 py-5 text-center text-sm uppercase tracking-widest transition-colors md:text-base";
-  const look = selected
-    ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
-    : "border-cabinet-border bg-cabinet-btn text-cabinet-text hover:border-cabinet-accent";
-  return (
-    <button onClick={onClick} onMouseEnter={onMouseEnter} className={`${base} ${look}`}>
-      {label}
-    </button>
-  );
-}
+import { CabinetButton, CabinetPanel, Divider } from "../ui/cabinet";
 
 const TITLES: Record<string, { main: string; sub: string }> = {
   amber: { main: "FROG SINATRA", sub: "& THE TADPOLES" },
@@ -35,7 +13,7 @@ const TITLES: Record<string, { main: string; sub: string }> = {
 const OPTIONS = [
   { label: "Single Player", to: "/solo/character" },
   { label: "Multiplayer", to: "/band" },
-  { label: "Join the Crowd", to: "/crowd" },
+  { label: "Join the Crowd", to: "/crowd", separated: true },
 ];
 
 const DEFAULT = OPTIONS.findIndex((o) => o.label === "Multiplayer");
@@ -80,29 +58,23 @@ export function ModeSelect() {
         </span>
       </h1>
 
-      <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
+      <CabinetPanel className="w-full max-w-md">
         <div className="flex flex-col gap-3">
-          <CabinetButton
-            label={OPTIONS[0]!.label}
-            selected={selected === 0}
-            onClick={() => navigate(OPTIONS[0]!.to)}
-            onMouseEnter={() => setSelected(0)}
-          />
-          <CabinetButton
-            label={OPTIONS[1]!.label}
-            selected={selected === 1}
-            onClick={() => navigate(OPTIONS[1]!.to)}
-            onMouseEnter={() => setSelected(1)}
-          />
-          <div className="my-1 h-0.5 bg-cabinet-frame" />
-          <CabinetButton
-            label={OPTIONS[2]!.label}
-            selected={selected === 2}
-            onClick={() => navigate(OPTIONS[2]!.to)}
-            onMouseEnter={() => setSelected(2)}
-          />
+          {OPTIONS.map((o, i) => (
+            <Fragment key={o.to}>
+              {o.separated && <Divider className="my-1" />}
+              <CabinetButton
+                full
+                selected={selected === i}
+                onClick={() => navigate(o.to)}
+                onMouseEnter={() => setSelected(i)}
+              >
+                {o.label}
+              </CabinetButton>
+            </Fragment>
+          ))}
         </div>
-      </div>
+      </CabinetPanel>
     </div>
   );
 }

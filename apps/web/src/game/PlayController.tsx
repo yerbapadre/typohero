@@ -17,6 +17,7 @@ import { useStemOutput } from "./useStemOutput";
 import { useCountIn } from "./useCountIn";
 import { useSongs } from "../net/useSongs";
 import { useNav } from "../nav/NavContext";
+import { CountIn } from "../ui/cabinet";
 
 const TRAVEL_MS = 3500;
 
@@ -56,15 +57,17 @@ export function PlayController() {
   }, [done, run, finish]);
 
   return (
-    <div className="flex h-screen flex-col items-center gap-6 bg-neutral-900 px-8 py-8 text-white">
-      <div className="flex gap-3 font-mono text-sm text-neutral-500">
-        <span className="text-sky-400">{instrument}</span>
-        <span>· {song?.title ?? "—"}</span>
-        <span>· {difficulty}</span>
-        <span>· {wpm} wpm</span>
+    <div className="flex h-screen flex-col items-center gap-5 bg-cabinet-bg px-6 py-8 font-pixel text-cabinet-text">
+      <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] uppercase tracking-widest">
+        <span className="border-2 border-cabinet-accent px-2 py-1 text-cabinet-accent">{instrument}</span>
+        <span className="text-cabinet-text/60">{song?.title ?? "—"}</span>
+        <span className="text-cabinet-text/25">·</span>
+        <span className="text-cabinet-text/60">{difficulty}</span>
+        <span className="text-cabinet-text/25">·</span>
+        <span className="text-cabinet-text/60">{wpm} wpm</span>
       </div>
 
-      <div className="relative w-80 flex-1 overflow-hidden rounded-xl border border-white/10 bg-neutral-950">
+      <div className="relative w-80 flex-1 overflow-hidden border-[3px] border-cabinet-frame bg-black/40 shadow-[8px_8px_0_var(--cab-shadow)]">
         {live ? (
           <HighwayCanvas
             getState={() => ({
@@ -76,24 +79,30 @@ export function PlayController() {
             })}
           />
         ) : pressMs !== null ? (
-          <div className="absolute inset-0 grid place-items-center gap-2 text-center font-mono">
-            <div>
-              <div className="text-sm text-neutral-500">listen for your cue</div>
-              <div className="mt-1 text-2xl text-sky-400">{instrument} in {(remainingMs / 1000).toFixed(1)}s</div>
-            </div>
+          <div className="absolute inset-0 grid place-items-center px-4">
+            <CountIn
+              size="panel"
+              label="listen for your cue"
+              value={`${(remainingMs / 1000).toFixed(1)}s`}
+            />
           </div>
         ) : (
-          <button
-            onClick={() => setPressMs(Date.now())}
-            className="absolute inset-0 grid place-items-center font-mono text-lg text-green-400"
-          >
-            ▶ start show
+          <button onClick={() => setPressMs(Date.now())} className="absolute inset-0 grid place-items-center">
+            <span className="border-2 border-cabinet-accent bg-cabinet-accent px-6 py-4 text-sm uppercase tracking-widest text-cabinet-ink transition-colors hover:bg-[#ffcf5a]">
+              ▶ Start Show
+            </span>
           </button>
         )}
       </div>
 
-      <div className="font-mono text-sm text-neutral-400">
-        {run.points} pts · streak {run.streak} (×{streakMultiplier(run.streak)}) · longest {run.longestStreak}
+      <div className="flex flex-wrap items-center justify-center gap-2 text-xs uppercase tracking-widest">
+        <span className="text-white">{run.points} pts</span>
+        <span className="text-cabinet-text/25">·</span>
+        <span>
+          streak {run.streak} <span className="text-cabinet-accent">×{streakMultiplier(run.streak)}</span>
+        </span>
+        <span className="text-cabinet-text/25">·</span>
+        <span className="text-cabinet-text/50">longest {run.longestStreak}</span>
       </div>
     </div>
   );
