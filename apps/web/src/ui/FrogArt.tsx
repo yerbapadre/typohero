@@ -21,7 +21,9 @@ export function FrogArt({
 
   const sprite = SPRITES[frog.id];
   if (sprite) {
-    return <PixelSprite grid={sprite} label={frog.name} className={dim + " " + className} />;
+    // Pixel sprites stay in full color even when locked — the padlock badge
+    // already signals the locked state, so no dimming here.
+    return <PixelSprite grid={sprite} label={frog.name} className={className} />;
   }
 
   if (broken) {
