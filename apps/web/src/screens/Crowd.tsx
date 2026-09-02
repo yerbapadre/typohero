@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { CrowdItem } from "@typohero/protocol";
 import { useRoom } from "../net/useRoom";
@@ -6,6 +6,7 @@ import { useSongs } from "../net/useSongs";
 import { useChart } from "../net/useChart";
 import { CROWD_FROG_IMAGE } from "../characters";
 import { CabinetPage } from "../ui/CabinetPage";
+import { useWorn } from "../merch/shirts";
 import { NameEntry } from "../ui/NameEntry";
 import {
   CabinetButton,
@@ -120,6 +121,16 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
     [],
   );
 
+  // Tell the room what you have on: once the socket is up, and again whenever
+  // you change shirts at the merch booth. `room.send` is a fresh closure every
+  // render, so it goes through a ref rather than the dependency list.
+  const { shirt } = useWorn();
+  const sendRef = useRef(room.send);
+  sendRef.current = room.send;
+  useEffect(() => {
+    if (room.connected) sendRef.current({ type: "wear", shirt });
+  }, [room.connected, shirt]);
+
   const onEquip = useCallback(
     (item: CrowdItem | null) => room.send({ type: "equip", item }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,6 +162,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         youId={null}
         positions={room.positions}
         crowd={room.crowd}
+        wardrobe={room.wardrobe}
         crowdYouId={spectatorId}
         crowdYouName={name}
         onMove={onMove}
@@ -187,6 +199,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
           onMove={onMove}
           bandName={roomId}
           crowd={room.crowd}
+          wardrobe={room.wardrobe}
         />
       </div>
 

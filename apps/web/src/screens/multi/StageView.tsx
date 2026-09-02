@@ -10,6 +10,7 @@ import {
 } from "@typohero/engine";
 import type { CrowdItem } from "@typohero/protocol";
 import type { CrowdMember, Position } from "../../net/useRoom";
+import type { WornShirt } from "@typohero/protocol";
 import { StageCanvas } from "../../render/StageCanvas";
 import { TRAVEL_MS } from "../../render/stage/scene";
 import { homeXPercent, RISER_ZONE } from "../../render/stage/performers";
@@ -36,6 +37,7 @@ export function StageView({
   positions,
   onBandMove,
   crowd,
+  wardrobe,
   crowdYouId,
   crowdYouName,
   onMove,
@@ -55,6 +57,7 @@ export function StageView({
   // Only a band member gets this — it steers their frog on the riser.
   onBandMove?: (x: number, y: number, facing: -1 | 1) => void;
   crowd: CrowdMember[];
+  wardrobe?: Record<string, WornShirt>;
   crowdYouId?: string | null;
   crowdYouName?: string;
   onMove?: (x: number, y: number, facing: -1 | 1) => void;
@@ -129,7 +132,7 @@ export function StageView({
 
         {youLane >= 0 && !!onBandMove && (
           <div className="pointer-events-none absolute bottom-2 right-3 text-[9px] uppercase tracking-widest text-cabinet-text/30">
-            ← → walk the stage · ↑ jump
+            ← → walk the stage · ↑ jump · ↑↑ double jump
           </div>
         )}
       </div>
@@ -137,6 +140,7 @@ export function StageView({
       <div className="h-[21vh] min-h-[150px] shrink-0">
         <CrowdFloor
           crowd={crowd}
+          wardrobe={wardrobe}
           youId={crowdYouId ?? null}
           youName={crowdYouName}
           controllable={controllableCrowd}
