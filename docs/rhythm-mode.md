@@ -29,7 +29,10 @@ Phase 1 groundwork is on `feat/rhythm-mode`:
   untouched.
 - **Pipeline** — `scripts/chart-song.py` charts per-stem onsets into a `chart.json` sidecar, wired
   into `add-song.sh`; `setup-demucs.sh` installs librosa.
-- **Not started** — the client: letter notes on the highway, transport re-anchoring, calibration.
+- **Client** — charted lanes type letters on the beat through the existing stage highway; playback
+  is anchored to the song start; judgment feedback on screen. Off by default behind a host toggle.
+- **Not started** — the calibration screen, and rhythm-specific canvas work (beat lines from
+  `beatsMs`, judgment pops drawn on the highway rather than as a DOM overlay).
 
 Validated against a synthetic fixture with a known rhythm per instrument (12s at 120 BPM):
 
@@ -118,6 +121,13 @@ Options:
   syllable) but per-song authoring, and copyright applies to lyrics as much as to audio.
 
 This is a real workstream, not a footnote — the mode doesn't ship without it.
+
+## Turning it on
+
+`noteMode` lives on the room and defaults to `words`. The host flips it in the lobby; it is locked
+during a performance and open again in setup. A lane goes rhythm only when the setting is on *and*
+its song has a chart for that instrument and difficulty — otherwise it falls back to the word
+highway, so a partially charted song still plays.
 
 ## 4. Engine changes
 
@@ -256,8 +266,8 @@ on librosa, calibration, or charting.
 ## 9. Decisions needed
 
 1. ~~**Rhythm source**~~ — decided: per-stem onsets.
-2. **Coexist or replace** — does word mode survive (solo keeps it, multi goes rhythm), or does
-   rhythm replace it outright? Coexistence is more code but a safer path.
+2. ~~**Coexist or replace**~~ — decided: they coexist. `noteMode` is a room setting the host flips
+   in the lobby, defaulting to `words`. Solo is still word-only.
 3. **Content** — long-form passages, cyclic word pool, or lyrics for the vocal lane.
 4. **Audio topology for the show** — one PA (shared) or everyone on headphones (distributed).
    This decides whether the clock handshake matters at all.
