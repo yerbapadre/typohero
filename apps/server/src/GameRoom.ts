@@ -8,9 +8,11 @@ import {
   type RoomAction,
   type LiveStat,
 } from "@typohero/engine";
-import type { ClientMsg, ServerMsg } from "@typohero/protocol";
+import type { ClientMsg, ServerMsg, WornShirt } from "@typohero/protocol";
 
 const FRAME_MS = 50;
+// A wire-sized print is a few KB; anything near this is not one of ours.
+const MAX_ART_CHARS = 48_000;
 
 type Env = Record<string, never>;
 type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string };
@@ -22,6 +24,9 @@ export class GameRoom extends DurableObject<Env> {
   private stats = new Map<string, LiveStat>();
   private positions = new Map<string, { x: number; y: number; facing: number }>();
   private crowd = new Map<string, CrowdEntry>();
+  // Kept apart from `crowd` on purpose: that map is rebroadcast on every
+  // movement tick, and shirts are far too fat to ride along.
+  private wardrobe = new Map<string, WornShirt>();
   private tokens = new Map<string, string>();
   private frameTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -74,6 +79,16 @@ export class GameRoom extends DurableObject<Env> {
     this.broadcast({ type: "crowd", members });
   }
 
+  private wardrobeObject(): Record<string, WornShirt> {
+    const shirts: Record<string, WornShirt> = {};
+    for (const [id, s] of this.wardrobe) shirts[id] = s;
+    return shirts;
+  }
+
+  private broadcastWardrobe(): void {
+    this.broadcast({ type: "wardrobe", shirts: this.wardrobeObject() });
+  }
+
   private positionsObject(): Record<string, { x: number; y: number; facing: number }> {
     const players: Record<string, { x: number; y: number; facing: number }> = {};
     for (const [id, p] of this.positions) players[id] = p;
@@ -112,6 +127,7 @@ export class GameRoom extends DurableObject<Env> {
     if (msg.type === "spectate") {
       this.send(conn.ws, { type: "session", snapshot: this.room });
       this.send(conn.ws, { type: "positions", players: this.positionsObject() });
+      this.send(conn.ws, { type: "wardrobe", shirts: this.wardrobeObject() });
       if (msg.observer) {
         this.broadcastCrowd();
         return;
@@ -120,6 +136,16 @@ export class GameRoom extends DurableObject<Env> {
       conn.crowdId = id;
       this.crowd.set(id, { name: msg.name?.trim() || "someone", x: 30, y: 0, facing: 1 });
       this.broadcastCrowd();
+      return;
+    }
+
+    if (msg.type === "wear") {
+      if (!conn.crowdId) return;
+      const shirt = msg.shirt;
+      if (shirt && (typeof shirt.art !== "string" || shirt.art.length > MAX_ART_CHARS)) return;
+      if (shirt) this.wardrobe.set(conn.crowdId, shirt);
+      else this.wardrobe.delete(conn.crowdId);
+      this.broadcastWardrobe();
       return;
     }
 
@@ -276,7 +302,9 @@ export class GameRoom extends DurableObject<Env> {
     }
     if (conn.crowdId) {
       this.crowd.delete(conn.crowdId);
+      this.wardrobe.delete(conn.crowdId);
       this.broadcastCrowd();
+      this.broadcastWardrobe();
     }
   }
 }

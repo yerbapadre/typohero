@@ -1,9 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import { CROWD_FROG_IMAGE } from "../characters";
 import { CabinetPage } from "../ui/CabinetPage";
+import { useWorn } from "../merch/shirts";
 import { Playground } from "./multi/Playground";
 import { StageView } from "./multi/StageView";
 import { MultiResults } from "./multi/MultiResults";
@@ -148,6 +149,16 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
     [],
   );
 
+  // Tell the room what you have on: once the socket is up, and again whenever
+  // you change shirts at the merch booth. `room.send` is a fresh closure every
+  // render, so it goes through a ref rather than the dependency list.
+  const { shirt } = useWorn();
+  const sendRef = useRef(room.send);
+  sendRef.current = room.send;
+  useEffect(() => {
+    if (room.connected) sendRef.current({ type: "wear", shirt });
+  }, [room.connected, shirt]);
+
   if (!snap) {
     return (
       <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
@@ -170,6 +181,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         youId={null}
         positions={room.positions}
         crowd={room.crowd}
+        wardrobe={room.wardrobe}
         crowdYouId={spectatorId}
         crowdYouName={name}
         onMove={onMove}
@@ -199,6 +211,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
           onMove={onMove}
           bandName={roomId}
           crowd={room.crowd}
+          wardrobe={room.wardrobe}
         />
       </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ClientMsg } from "@typohero/protocol";
+import type { ClientMsg, WornShirt } from "@typohero/protocol";
 import type { RoomState, LiveStat, Character } from "@typohero/engine";
 import { RoomClient } from "./RoomClient";
 
@@ -10,6 +10,8 @@ export type Room = {
   snapshot: RoomState | null;
   frame: Record<string, LiveStat>;
   crowd: CrowdMember[];
+  /** What each spectator has on, keyed by crowd id. */
+  wardrobe: Record<string, WornShirt>;
   positions: Record<string, Position>;
   playerId: string | null;
   connected: boolean;
@@ -27,6 +29,7 @@ export function useRoom(
   const [snapshot, setSnapshot] = useState<RoomState | null>(null);
   const [frame, setFrame] = useState<Record<string, LiveStat>>({});
   const [crowd, setCrowd] = useState<CrowdMember[]>([]);
+  const [wardrobe, setWardrobe] = useState<Record<string, WornShirt>>({});
   const [positions, setPositions] = useState<Record<string, Position>>({});
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -42,6 +45,7 @@ export function useRoom(
         onFrame: (stats) => setFrame(stats),
         onResults: (final) => setFrame(final),
         onCrowd: setCrowd,
+        onWardrobe: setWardrobe,
         onPositions: setPositions,
         onOpen: () => setConnected(true),
         onClose: () => setConnected(false),
@@ -60,6 +64,7 @@ export function useRoom(
     snapshot,
     frame,
     crowd,
+    wardrobe,
     positions,
     playerId,
     connected,

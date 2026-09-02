@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { CrowdMember } from "../../net/useRoom";
 import { CROWD_FROG_IMAGE } from "../../characters";
 import { useCrowdWalk } from "../../game/useCrowdWalk";
+import { MerchShop } from "../../merch/MerchShop";
+import { SpriteShirt } from "../../merch/SpriteShirt";
+import { useWorn } from "../../merch/shirts";
+import type { WornShirt } from "@typohero/protocol";
 
 // The pit along the front of the stage. Spectators walk their own frog here
 // while the band plays; NPCs keep it full even when nobody has joined yet.
@@ -10,8 +14,8 @@ const ZONE = { min: 3, max: 97 };
 const NPC_COUNT = 18;
 
 // Hangout spots that line the pit. Each is a pixel-cabinet prop a spectator can
-// walk up to and press Enter on. The features behind them aren't built yet —
-// this wires the room UI and the proximity/Enter detection only.
+// walk up to and press Enter on. Merch opens the shirt press; the rest are
+// still stubs behind the same proximity/Enter plumbing.
 export type SpotId = "merch" | "bar" | "recs";
 type Spot = { id: SpotId; label: string; x: number; render: () => ReactNode };
 
@@ -291,6 +295,10 @@ function InteractPrompt({ x }: { x: number }) {
 }
 
 function InteractPanel({ spot, onClose }: { spot: Spot; onClose: () => void }) {
+  // Merch is built: it takes over the screen, since the pit strip is far too
+  // short to paint in.
+  if (spot.id === "merch") return <MerchShop onClose={onClose} />;
+
   return (
     <div className="absolute inset-0 z-30 grid place-items-center bg-black/50">
       <div className="border-[3px] border-cabinet-accent bg-cabinet-bg px-8 py-6 text-center shadow-[8px_8px_0_#6b4e18]">
@@ -336,6 +344,7 @@ function PitFrog({
   bobOffset = 0,
   smooth = true,
   lift = 0,
+  shirt,
 }: {
   name?: string;
   x: number;
@@ -348,6 +357,7 @@ function PitFrog({
   bobOffset?: number;
   smooth?: boolean;
   lift?: number;
+  shirt?: WornShirt | null;
 }) {
   const airborne = y > 0.4;
   return (
@@ -376,18 +386,22 @@ function PitFrog({
           {name}
         </span>
       )}
-      <div className="frog-bob" style={{ animationDuration: bobDuration(energy, bobOffset) }}>
+      <div
+        className="frog-bob relative"
+        style={{ animationDuration: bobDuration(energy, bobOffset) }}
+      >
         <img
           src={CROWD_FROG_IMAGE}
           alt=""
           draggable={false}
-          className="w-auto object-contain"
+          className="block w-auto object-contain"
           style={{
             height: `${Math.round(74 * scale)}px`,
             transform: `scaleX(${flip ? -facing : facing})`,
             opacity: name ? 1 : 0.5,
           }}
         />
+        <SpriteShirt shirt={shirt} />
       </div>
     </div>
   );
@@ -395,6 +409,7 @@ function PitFrog({
 
 export function CrowdFloor({
   crowd,
+  wardrobe = {},
   youId,
   youName,
   controllable,
@@ -403,6 +418,8 @@ export function CrowdFloor({
   energy,
 }: {
   crowd: CrowdMember[];
+  /** What each spectator has on, keyed by crowd id. */
+  wardrobe?: Record<string, WornShirt>;
   youId: string | null;
   youName?: string;
   controllable: boolean;
@@ -412,8 +429,16 @@ export function CrowdFloor({
   onInteract?: (id: SpotId) => void;
   energy: number;
 }) {
+  const [active, setActive] = useState<Spot | null>(null);
+
+  // Your own shirt comes from local state, not the wardrobe relay, so changing
+  // it in the booth shows up on your frog with no round trip.
+  const { shirt: yourShirt } = useWorn();
+
+  // An open spot owns the keyboard — otherwise arrows and space would walk your
+  // frog around behind the panel while you're painting or typing a name.
   const you = useCrowdWalk({
-    enabled: controllable,
+    enabled: controllable && !active,
     startX: 30,
     zone: ZONE,
     onMove: onMove ?? (() => {}),
@@ -427,18 +452,18 @@ export function CrowdFloor({
       ? SPOTS.find((s) => Math.abs(s.x - you.x) < REACH) ?? null
       : null;
 
-  const [active, setActive] = useState<Spot | null>(null);
-
   // Enter opens the spot you're near; Escape closes an open one. Enter isn't in
   // the walker's keymap, so listening here doesn't fight the movement handler.
   const nearRef = useRef(nearSpot);
   nearRef.current = nearSpot;
   const interactRef = useRef(onInteract);
   interactRef.current = onInteract;
+  const openRef = useRef(active);
+  openRef.current = active;
   useEffect(() => {
     if (!controllable) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Enter" && nearRef.current) {
+      if (e.key === "Enter" && nearRef.current && !openRef.current) {
         e.preventDefault();
         setActive(nearRef.current);
         interactRef.current?.(nearRef.current.id);
@@ -479,7 +504,16 @@ export function CrowdFloor({
       ))}
 
       {others.map((c) => (
-        <PitFrog key={c.id} name={c.name} x={c.x} y={c.y} facing={c.facing} energy={energy} flip />
+        <PitFrog
+          key={c.id}
+          name={c.name}
+          x={c.x}
+          y={c.y}
+          facing={c.facing}
+          energy={energy}
+          shirt={wardrobe[c.id]}
+          flip
+        />
       ))}
 
       {controllable && (
@@ -489,6 +523,7 @@ export function CrowdFloor({
           y={you.y}
           facing={you.facing}
           energy={energy}
+          shirt={yourShirt}
           you
           flip
           smooth={false}

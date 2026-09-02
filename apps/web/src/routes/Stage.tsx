@@ -3,6 +3,7 @@ import type { RoomState } from "@typohero/engine";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import type { CrowdMember } from "../net/useRoom";
+import type { WornShirt } from "@typohero/protocol";
 import { CabinetPage } from "../ui/CabinetPage";
 import { StageView } from "../screens/multi/StageView";
 import { MultiResults } from "../screens/multi/MultiResults";
@@ -98,12 +99,13 @@ function StageScreen({ roomId }: { roomId: string }) {
         youId={null}
         positions={room.positions}
         crowd={room.crowd}
+        wardrobe={room.wardrobe}
         controllableCrowd={false}
       />
     );
   }
 
-  return <PreShow roomId={roomId} snapshot={snap} crowd={room.crowd} />;
+  return <PreShow roomId={roomId} snapshot={snap} crowd={room.crowd} wardrobe={room.wardrobe} />;
 }
 
 // Holding screen before the count-in: the marquee, who's on the bill, and the
@@ -112,10 +114,12 @@ function PreShow({
   roomId,
   snapshot,
   crowd,
+  wardrobe,
 }: {
   roomId: string;
   snapshot: RoomState;
   crowd: CrowdMember[];
+  wardrobe: Record<string, WornShirt>;
 }) {
   const band = snapshot.members.filter((m) => m.connected);
 
@@ -172,7 +176,7 @@ function PreShow({
       </div>
 
       <div className="h-[21vh] min-h-[150px] shrink-0">
-        <CrowdFloor crowd={crowd} youId={null} controllable={false} energy={1} />
+        <CrowdFloor crowd={crowd} wardrobe={wardrobe} youId={null} controllable={false} energy={1} />
       </div>
     </div>
   );
