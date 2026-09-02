@@ -1,4 +1,11 @@
-import type { InstrumentLane, Difficulty, Character, RoomState, LiveStat } from "@typohero/engine";
+import type {
+  InstrumentLane,
+  Difficulty,
+  Character,
+  RoomState,
+  LiveStat,
+  NoteMode,
+} from "@typohero/engine";
 
 // Something a crowd frog can carry around the pit, grabbed at the bar.
 export type CrowdItem = "drink" | "pizza";
@@ -25,6 +32,7 @@ export type ClientMsg =
   | { type: "proposeStart" }
   | { type: "confirmStart" }
   | { type: "setMode"; mode: "shared" | "distributed" }
+  | { type: "setNoteMode"; noteMode: NoteMode }
   | { type: "assignAudio"; playerId: string; on: boolean }
   | { type: "nextSong" };
 

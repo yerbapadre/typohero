@@ -1,0 +1,165 @@
+import { tokenizeWords, type Note } from "./notes";
+import type { InstrumentLane } from "./song";
+import type { Difficulty } from "./difficulty";
+
+/** One keystroke: a letter from the passage placed at a time from the song. */
+export type ChartNote = {
+  index: number;
+  char: string;
+  timeMs: number;
+  wordIndex: number;
+  wordStart: boolean;
+};
+
+export type Chart = { notes: ChartNote[] };
+
+export type Judgment = "perfect" | "great" | "good" | "miss";
+
+export type HitWindows = { perfect: number; great: number; good: number };
+
+/** Tuned for a room with one PA: residual latency after calibration must still land in `perfect`. */
+export const HIT_WINDOWS: HitWindows = { perfect: 80, great: 150, good: 220 };
+
+export type BuildChartOpts = {
+  /** Reuse the passage from the start when the rhythm outlasts its letters. */
+  loop?: boolean;
+};
+
+function letterCount(words: string[]): number {
+  let count = 0;
+  for (const word of words) count += word.length;
+  return count;
+}
+
+export function buildChart(text: string, timesMs: number[], opts: BuildChartOpts = {}): Chart {
+  const words = tokenizeWords(text);
+  if (words.length === 0) return { notes: [] };
+
+  const times = [...timesMs].sort((a, b) => a - b);
+  const available = opts.loop ? times.length : Math.min(times.length, letterCount(words));
+
+  const notes: ChartNote[] = [];
+  let wordsConsumed = 0;
+  let charInWord = 0;
+
+  for (let index = 0; index < available; index++) {
+    const word = words[wordsConsumed % words.length]!;
+    notes.push({
+      index,
+      char: word[charInWord]!,
+      timeMs: times[index]!,
+      wordIndex: wordsConsumed,
+      wordStart: charInWord === 0,
+    });
+    charInWord++;
+    if (charInWord >= word.length) {
+      charInWord = 0;
+      wordsConsumed++;
+    }
+  }
+
+  return { notes };
+}
+
+function halfGapToNearestNeighbour(chart: Chart, index: number): number {
+  const note = chart.notes[index]!;
+  const prev = chart.notes[index - 1];
+  const next = chart.notes[index + 1];
+
+  let half = Infinity;
+  if (prev) half = Math.min(half, (note.timeMs - prev.timeMs) / 2);
+  if (next) half = Math.min(half, (next.timeMs - note.timeMs) / 2);
+  return Math.max(0, half);
+}
+
+/**
+ * Hit windows for one note, never wide enough to reach a neighbouring note.
+ * Dense passages scale all three tiers down together, so grading stays
+ * proportional rather than collapsing into `perfect`.
+ */
+export function windowsFor(chart: Chart, index: number, base: HitWindows = HIT_WINDOWS): HitWindows {
+  if (!chart.notes[index]) return base;
+
+  const room = Math.min(base.good, halfGapToNearestNeighbour(chart, index));
+  if (room >= base.good) return base;
+
+  const scale = room / base.good;
+  return { perfect: base.perfect * scale, great: base.great * scale, good: room };
+}
+
+/** `chart.json`, written by `scripts/chart-song.py` beside a song's manifest. */
+export type ChartFile = {
+  songId: string;
+  bpm: number;
+  subdivision: number;
+  beatsMs: number[];
+  lanes: Partial<Record<InstrumentLane, Partial<Record<Difficulty, number[]>>>>;
+};
+
+export function laneTimes(
+  file: ChartFile,
+  lane: InstrumentLane,
+  difficulty: Difficulty,
+): number[] {
+  return file.lanes[lane]?.[difficulty] ?? [];
+}
+
+export function isChartedLane(file: ChartFile, lane: InstrumentLane): boolean {
+  const tiers = file.lanes[lane];
+  if (!tiers) return false;
+  return Object.values(tiers).some((times) => (times?.length ?? 0) > 0);
+}
+
+export function chartFromFile(
+  file: ChartFile,
+  lane: InstrumentLane,
+  difficulty: Difficulty,
+  text: string,
+  opts: BuildChartOpts = {},
+): Chart {
+  return buildChart(text, laneTimes(file, lane, difficulty), opts);
+}
+
+/**
+ * Chart notes as highway notes, so the note-highway renderer draws a rhythm
+ * chart without knowing about charts: each letter reaches the hit line exactly
+ * at its charted time, having spawned `travelMs` earlier.
+ */
+export function chartNotes(chart: Chart, travelMs: number): Note[] {
+  return chart.notes.map((note) => ({
+    index: note.index,
+    word: note.char,
+    charStart: note.index,
+    charEnd: note.index + 1,
+    spawnMs: note.timeMs - travelMs,
+    hitMs: note.timeMs,
+  }));
+}
+
+/**
+ * How long a charted note should travel, so a lane holds roughly `notesInFlight`
+ * notes at once however dense it is. A constant travel time makes a 16th-note
+ * lane illegible and a half-note lane look empty.
+ */
+export function travelMsForChart(chart: Chart, notesInFlight = 8): number {
+  const gaps: number[] = [];
+  for (let i = 1; i < chart.notes.length; i++) {
+    gaps.push(chart.notes[i]!.timeMs - chart.notes[i - 1]!.timeMs);
+  }
+  if (gaps.length === 0) return TRAVEL_BOUNDS.max;
+
+  gaps.sort((a, b) => a - b);
+  const median = gaps[Math.floor(gaps.length / 2)]!;
+  const travel = median * notesInFlight;
+  return Math.round(Math.max(TRAVEL_BOUNDS.min, Math.min(TRAVEL_BOUNDS.max, travel)));
+}
+
+const TRAVEL_BOUNDS = { min: 1100, max: 4000 };
+
+export function judge(deltaMs: number, windows: HitWindows): Judgment {
+  const off = Math.abs(deltaMs);
+  if (off <= windows.perfect) return "perfect";
+  if (off <= windows.great) return "great";
+  if (off <= windows.good) return "good";
+  return "miss";
+}

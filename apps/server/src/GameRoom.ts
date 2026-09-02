@@ -222,6 +222,8 @@ export class GameRoom extends DurableObject<Env> {
         return { t: "proposeStart", id };
       case "confirmStart":
         return { t: "confirmStart", id };
+      case "setNoteMode":
+        return { t: "setNoteMode", id, noteMode: msg.noteMode };
       case "setMode":
         return { t: "setMode", id, mode: msg.mode };
       case "assignAudio":

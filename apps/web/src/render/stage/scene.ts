@@ -18,6 +18,7 @@ export type StageLaneView = {
   instrument: string;
   you: boolean;
   notes: Note[];
+  travelMs: number;
   cursor: number;
   displayChars: CharState[] | null;
   elapsedMs: number;
@@ -35,5 +36,6 @@ export type StageScene = {
   bandQuality: number;
 };
 
-// How long a note takes to travel from the horizon to the hit line.
+// How long a word note takes to travel from the horizon to the hit line. Rhythm
+// lanes derive their own travel time from how dense the chart is.
 export const TRAVEL_MS = 6000;

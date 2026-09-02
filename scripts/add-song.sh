@@ -51,6 +51,10 @@ echo "wrote $OUT (6 stems + song.json)"
 echo "analyzing stem activity..."
 python3 "$ROOT/scripts/analyze-song.py" "$OUT"
 
+echo "charting rhythm from stems..."
+"$VENV/bin/python" "$ROOT/scripts/chart-song.py" ${BPM:+--bpm "$BPM"} "$OUT" \
+  || echo "charting failed — run ./scripts/chart-song.py $OUT manually (pass --bpm if the tempo is known)"
+
 if [ "${SYNC:-1}" = "1" ]; then
   echo "syncing $ID to catalog (BASE=${BASE:-http://localhost:8799})..."
   "$ROOT/scripts/sync-songs.sh" "$ID" || echo "sync skipped/failed — run ./scripts/sync-songs.sh $ID manually"

@@ -285,3 +285,34 @@ describe("per-member audio output", () => {
     expect(s.members[0]!.audioOutput).toBe(false);
   });
 });
+
+describe("note mode", () => {
+  it("starts on words so nothing changes until it is turned on", () => {
+    expect(initialRoom().noteMode).toBe("words");
+  });
+
+  it("lets the host switch modes in the lobby", () => {
+    const s = run(lobbyWith("a", "b"), { t: "setNoteMode", id: "a", noteMode: "rhythm" });
+    expect(s.noteMode).toBe("rhythm");
+  });
+
+  it("ignores anyone who is not the host", () => {
+    const s = run(lobbyWith("a", "b"), { t: "setNoteMode", id: "b", noteMode: "rhythm" });
+    expect(s.noteMode).toBe("words");
+  });
+
+  it("cannot be switched mid-performance", () => {
+    const playing = { ...lobbyWith("a"), phase: "playing" as const };
+    const s = run(playing, { t: "setNoteMode", id: "a", noteMode: "rhythm" });
+    expect(s.noteMode).toBe("words");
+  });
+
+  it("survives lock-in so the setting reaches the stage", () => {
+    const s = run(
+      lobbyWith("a"),
+      { t: "setNoteMode", id: "a", noteMode: "rhythm" },
+      { t: "lockIn", id: "a" },
+    );
+    expect(s.noteMode).toBe("rhythm");
+  });
+});

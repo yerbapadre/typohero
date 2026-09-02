@@ -16,5 +16,8 @@ uv venv --python 3.11 "$VENV"
 echo "installing demucs + torch (this downloads ~2GB the first time)..."
 uv pip install --python "$VENV/bin/python" demucs numpy soundfile
 
+echo "installing librosa (beat + onset detection for rhythm charts)..."
+uv pip install --python "$VENV/bin/python" librosa
+
 echo
 echo "done. run ./scripts/add-song.sh <mp3> <id> \"<title>\" \"<artist>\""

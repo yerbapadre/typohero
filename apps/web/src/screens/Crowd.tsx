@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { CrowdItem } from "@typohero/protocol";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
+import { useChart } from "../net/useChart";
 import { CROWD_FROG_IMAGE } from "../characters";
 import { CabinetPage } from "../ui/CabinetPage";
 import { NameEntry } from "../ui/NameEntry";
@@ -109,6 +110,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
   const room = useRoom(roomId, name, true, undefined, spectatorId);
   const songs = useSongs();
   const snap = room.snapshot;
+  const chartFile = useChart(snap?.songId ?? null);
   const song = songs?.find((s) => s.id === snap?.songId) ?? null;
 
   const onMove = useCallback(
@@ -138,6 +140,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         snapshot={snap}
         frame={room.frame}
         song={song}
+        chart={snap.noteMode === "rhythm" ? chartFile : null}
         youId={null}
         positions={room.positions}
         crowd={room.crowd}
