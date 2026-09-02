@@ -8,8 +8,8 @@ import {
   type ChartFile,
   type RhythmRun,
 } from "@typohero/engine";
-import type { CrowdItem } from "@typohero/protocol";
-import type { CrowdMember, Position } from "../../net/useRoom";
+import type { CrowdItem, ReactionKind } from "@typohero/protocol";
+import type { CrowdMember, Position, Reaction } from "../../net/useRoom";
 import type { WornShirt } from "@typohero/protocol";
 import { StageCanvas } from "../../render/StageCanvas";
 import { TRAVEL_MS } from "../../render/stage/scene";
@@ -19,6 +19,7 @@ import { useStageWalk } from "../../game/useStageWalk";
 import { useCountIn } from "../../game/useCountIn";
 import { CountIn } from "../../ui/cabinet";
 import { CrowdFloor } from "./CrowdFloor";
+import { ReactionBar, ReactionLayer } from "./Reactions";
 
 // The shared stage: the same lane highway on every machine, the band's frogs
 // on the riser behind it, the crowd pit along the front. A band member gets
@@ -42,6 +43,8 @@ export function StageView({
   crowdYouName,
   onMove,
   onEquip,
+  reactions = [],
+  onReact,
   controllableCrowd,
   footer,
 }: {
@@ -62,6 +65,9 @@ export function StageView({
   crowdYouName?: string;
   onMove?: (x: number, y: number, facing: -1 | 1) => void;
   onEquip?: (item: CrowdItem | null) => void;
+  reactions?: Reaction[];
+  // Only someone with a frog in the room gets the bar; the big screen watches.
+  onReact?: (kind: ReactionKind) => void;
   controllableCrowd: boolean;
   footer?: ReactNode;
 }) {
@@ -97,7 +103,7 @@ export function StageView({
   const lanes = playing.length;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-cabinet-bg font-pixel text-cabinet-text">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-cabinet-bg font-pixel text-cabinet-text">
       <header className="flex shrink-0 items-center justify-between gap-4 border-b-[3px] border-cabinet-frame bg-black/25 px-4 py-2">
         <div className="min-w-0">
           <div className="text-[9px] uppercase tracking-[0.3em] text-cabinet-text/40">
@@ -135,6 +141,8 @@ export function StageView({
             ← → walk the stage · ↑ jump · ↑↑ double jump
           </div>
         )}
+
+        {onReact && <ReactionBar onReact={onReact} />}
       </div>
 
       <div className="h-[21vh] min-h-[150px] shrink-0">
@@ -151,6 +159,8 @@ export function StageView({
       </div>
 
       {footer && <div className="shrink-0 border-t-2 border-cabinet-frame bg-black/30">{footer}</div>}
+
+      <ReactionLayer reactions={reactions} />
     </div>
   );
 }

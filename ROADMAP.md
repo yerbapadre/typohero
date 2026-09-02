@@ -49,8 +49,12 @@ scripts/           offline Demucs stem-splitting pipeline
       room snapshot (deterministic notes) plus the 20Hz `LiveStat`, so only the local lane has
       per-character truth.
 - [x] **Crowd pit** — the crowd stands along the front of the stage for the whole show and can
-      walk/jump their frog there (`useCrowdWalk`, shared with the lobby playground); two rows of
-      NPC frogs keep the pit full, and the whole pit bobs faster as the band plays tighter.
+      walk/jump their frog there (`useCrowdWalk`, shared with the lobby playground; a second hop
+      in mid-air double-jumps); two rows of NPC frogs keep the pit full, and the whole pit bobs
+      faster as the band plays tighter.
+- [x] **Burst reactions** — a bar of pixel hearts/smileys/stars under the stage. A press rides a
+      transient `react` → `reaction` relay (never stored in room state, throttled per socket) and
+      bursts float up off the sender's own frog on every machine, the big screen included.
 - [x] **Band on the riser** — the frog each player picked stands upstage behind their own lane and
       can be walked around with the arrow keys *while typing* (letters, space and backspace all
       belong to the run, so the arrows are the only free input). Position rides the existing

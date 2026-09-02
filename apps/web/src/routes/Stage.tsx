@@ -101,6 +101,7 @@ function StageScreen({ roomId }: { roomId: string }) {
         positions={room.positions}
         crowd={room.crowd}
         wardrobe={room.wardrobe}
+        reactions={room.reactions}
         controllableCrowd={false}
       />
     );

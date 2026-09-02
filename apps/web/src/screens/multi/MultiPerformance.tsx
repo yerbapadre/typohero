@@ -12,6 +12,7 @@ import {
   DIFFICULTY_WPM,
   type InstrumentLane,
 } from "@typohero/engine";
+import type { ReactionKind } from "@typohero/protocol";
 import type { Room } from "../../net/useRoom";
 import { useSongs } from "../../net/useSongs";
 import { useChart } from "../../net/useChart";
@@ -102,6 +103,12 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
     [],
   );
 
+  const onReact = useCallback(
+    (kind: ReactionKind) => room.send({ type: "react", kind }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   const local = useMemo(
     () => ({ view: () => (chart ? rhythmView() : wordRun) }),
     [chart, rhythmView, wordRun],
@@ -123,6 +130,8 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
       positions={room.positions}
       onBandMove={onBandMove}
       crowd={room.crowd}
+      reactions={room.reactions}
+      onReact={onReact}
       controllableCrowd={false}
       rhythmRun={chart ? rhythmRun : null}
     />
