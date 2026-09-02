@@ -8,13 +8,13 @@ import {
   type RoomAction,
   type LiveStat,
 } from "@typohero/engine";
-import type { ClientMsg, ServerMsg } from "@typohero/protocol";
+import type { ClientMsg, ServerMsg, CrowdItem } from "@typohero/protocol";
 
 const FRAME_MS = 50;
 
 type Env = Record<string, never>;
 type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string };
-type CrowdEntry = { name: string; x: number; y: number; facing: number };
+type CrowdEntry = { name: string; x: number; y: number; facing: number; item?: CrowdItem };
 
 export class GameRoom extends DurableObject<Env> {
   private room: RoomState = initialRoom();
@@ -137,6 +137,17 @@ export class GameRoom extends DurableObject<Env> {
       if (conn.playerId) {
         this.positions.set(conn.playerId, { x: msg.x, y: msg.y, facing: msg.facing });
         this.broadcastPositions();
+      }
+      return;
+    }
+
+    if (msg.type === "equip") {
+      if (conn.crowdId) {
+        const e = this.crowd.get(conn.crowdId);
+        if (e) {
+          e.item = msg.item ?? undefined;
+          this.broadcastCrowd();
+        }
       }
       return;
     }

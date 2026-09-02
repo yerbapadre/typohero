@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { bandQuality, centerOn, type RoomState, type LiveStat, type Song } from "@typohero/engine";
+import type { CrowdItem } from "@typohero/protocol";
 import type { CrowdMember, Position } from "../../net/useRoom";
 import { StageCanvas } from "../../render/StageCanvas";
 import { TRAVEL_MS } from "../../render/stage/scene";
@@ -27,6 +28,7 @@ export function StageView({
   crowdYouId,
   crowdYouName,
   onMove,
+  onEquip,
   controllableCrowd,
   footer,
 }: {
@@ -43,6 +45,7 @@ export function StageView({
   crowdYouId?: string | null;
   crowdYouName?: string;
   onMove?: (x: number, y: number, facing: -1 | 1) => void;
+  onEquip?: (item: CrowdItem | null) => void;
   controllableCrowd: boolean;
   footer?: ReactNode;
 }) {
@@ -129,6 +132,7 @@ export function StageView({
           youName={crowdYouName}
           controllable={controllableCrowd}
           onMove={onMove}
+          onEquip={onEquip}
           energy={energy}
         />
       </div>

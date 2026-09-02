@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type { ClientMsg } from "@typohero/protocol";
+import type { ClientMsg, CrowdItem } from "@typohero/protocol";
 import type { RoomState, LiveStat, Character } from "@typohero/engine";
 import { RoomClient } from "./RoomClient";
 
 export type Position = { x: number; y: number; facing: number };
-export type CrowdMember = { id: string; name: string; x: number; y: number; facing: number };
+export type CrowdMember = { id: string; name: string; x: number; y: number; facing: number; item?: CrowdItem };
 
 export type Room = {
   snapshot: RoomState | null;
