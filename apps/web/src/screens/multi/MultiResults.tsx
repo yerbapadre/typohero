@@ -1,5 +1,7 @@
 import type { Member, LiveStat } from "@typohero/engine";
 import { useNav } from "../../nav/NavContext";
+import { CabinetButton, CabinetPanel, Divider, Stat } from "../../ui/cabinet";
+import { frogById } from "../../characters";
 
 export function MultiResults({
   members,
@@ -19,38 +21,71 @@ export function MultiResults({
     ranked.length === 0 ? 0 : ranked.reduce((sum, r) => sum + (r.s?.accuracy ?? 0), 0) / ranked.length;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-10 bg-neutral-900 py-16 text-white">
-      <div className="text-center">
-        <h1 className="text-2xl">The band played on</h1>
-        <div className="mt-2 font-mono text-4xl">{bandTotal.toLocaleString()} pts</div>
-        <div className="text-sm text-neutral-500">band total · {Math.round(avgAccuracy * 100)}% avg accuracy</div>
-      </div>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-cabinet-bg px-6 py-12 font-pixel text-cabinet-text">
+      <header className="text-center">
+        <div className="text-xs uppercase tracking-widest text-cabinet-text/40">that's the show</div>
+        <h1 className="mt-2 text-2xl font-bold tracking-wide text-white md:text-3xl">
+          THE BAND <span className="text-cabinet-accent">PLAYED ON</span>
+        </h1>
+      </header>
 
-      <div className="flex w-full max-w-md flex-col gap-1 font-mono text-sm">
-        {ranked.map(({ m, s }, i) => (
-          <div
-            key={m.id}
-            className={
-              "flex items-center justify-between rounded-lg px-4 py-2 " +
-              (m.id === youId ? "bg-white/5 text-white" : "text-neutral-400")
-            }
-          >
-            <span>
-              {i === 0 ? "🏆 " : `${i + 1}. `}
-              {m.name}
-              {m.id === youId ? " (you)" : ""}
-              <span className="text-neutral-600"> · {m.instrument}</span>
-            </span>
-            <span>
-              {s ? `${s.points} pts · ${Math.round(s.accuracy * 100)}%` : "—"}
-            </span>
-          </div>
-        ))}
-      </div>
+      <CabinetPanel className="w-full max-w-md">
+        <div className="flex items-start justify-around gap-4">
+          <Stat label="band total" value={bandTotal.toLocaleString()} />
+          <Stat label="avg accuracy" value={`${Math.round(avgAccuracy * 100)}%`} />
+          <Stat label="on the bill" value={ranked.length} />
+        </div>
 
-      <button className="text-neutral-500" onClick={reset}>
-        Exit to menu
-      </button>
+        <Divider className="my-4" />
+
+        <div className="flex flex-col gap-2">
+          {ranked.map(({ m, s }, i) => {
+            const frog = frogById(m.character?.faceId);
+            const mine = m.id === youId;
+            return (
+              <div
+                key={m.id}
+                className={
+                  "flex items-center gap-2 border-2 px-3 py-2 " +
+                  (mine ? "border-cabinet-accent bg-cabinet-accent/10" : "border-cabinet-border bg-cabinet-btn")
+                }
+              >
+                <span className="w-6 shrink-0 text-center text-[11px] text-cabinet-accent">
+                  {i === 0 ? "🏆" : i + 1}
+                </span>
+                {frog ? (
+                  <img src={frog.image} alt="" className="h-7 w-7 shrink-0 object-contain" />
+                ) : (
+                  <span className="h-7 w-7 shrink-0 bg-cabinet-frame" />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs uppercase tracking-widest">
+                    {m.name}
+                    {mine ? " (you)" : ""}
+                  </span>
+                  <span className="block truncate text-[10px] uppercase tracking-widest text-cabinet-text/40">
+                    {m.instrument ?? "—"}
+                  </span>
+                </span>
+                <span className="shrink-0 text-right font-mono text-[11px] text-cabinet-text/60">
+                  {s ? (
+                    <>
+                      <span className="block text-cabinet-text">{s.points}</span>
+                      <span className="block">{Math.round(s.accuracy * 100)}%</span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </CabinetPanel>
+
+      <CabinetButton variant="ghost" onClick={reset}>
+        ← Exit to menu
+      </CabinetButton>
     </div>
   );
 }

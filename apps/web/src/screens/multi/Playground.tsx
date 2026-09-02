@@ -20,7 +20,7 @@ function Bulbs() {
       {Array.from({ length: 9 }, (_, i) => (
         <span
           key={i}
-          className={"h-1.5 w-1.5 rounded-full " + (i % 2 === 0 ? "bg-cabinet-accent" : "bg-cabinet-text/30")}
+          className={"h-1.5 w-1.5 " + (i % 2 === 0 ? "bg-cabinet-accent" : "bg-cabinet-text/30")}
         />
       ))}
     </div>
@@ -53,9 +53,9 @@ function Venue({ name }: { name: string }) {
 function Stanchion() {
   return (
     <div className="flex flex-col items-center">
-      <span className="h-3 w-3 rounded-full border-2 border-black bg-neutral-200" />
-      <span className="-mt-0.5 h-14 w-1.5 border-x border-black bg-neutral-300" />
-      <span className="h-1.5 w-5 border border-black bg-neutral-400" />
+      <span className="h-3 w-3 border-2 border-black bg-cabinet-text" />
+      <span className="-mt-0.5 h-14 w-1.5 border-x border-black bg-cabinet-text/80" />
+      <span className="h-1.5 w-5 border border-black bg-cabinet-text/60" />
     </div>
   );
 }
@@ -89,8 +89,8 @@ function CopCar() {
           POLICE
         </div>
         <div className="-mt-1 flex w-full justify-between px-1">
-          <span className="h-4 w-4 rounded-full border-2 border-black bg-neutral-900" />
-          <span className="h-4 w-4 rounded-full border-2 border-black bg-neutral-900" />
+          <span className="h-4 w-4 border-2 border-black bg-black" />
+          <span className="h-4 w-4 border-2 border-black bg-black" />
         </div>
       </div>
     </div>
@@ -244,7 +244,7 @@ export function Playground({
 
   return (
     <div className="w-full">
-      <div className="relative h-[54vh] overflow-hidden border-[3px] border-cabinet-frame bg-gradient-to-b from-black/25 to-cabinet-frame/25 shadow-[6px_6px_0_var(--cab-shadow)]">
+      <div className="relative h-[54vh] overflow-hidden border-[3px] border-cabinet-frame bg-black/25 shadow-[6px_6px_0_var(--cab-shadow)]">
         <Backdrop />
 
         <div

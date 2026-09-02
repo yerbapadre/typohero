@@ -1,4 +1,4 @@
-import type { ClientMsg, ServerMsg, WornShirt } from "@typohero/protocol";
+import type { ClientMsg, ServerMsg, WornShirt, CrowdItem } from "@typohero/protocol";
 import type { RoomState, LiveStat, Character } from "@typohero/engine";
 
 function wsBase(): string {
@@ -12,7 +12,7 @@ export type RoomEvents = {
   onFrame?: (stats: Record<string, LiveStat>, atMs: number) => void;
   onCountdown?: (startAtEpochMs: number) => void;
   onResults?: (final: Record<string, LiveStat>) => void;
-  onCrowd?: (members: { id: string; name: string; x: number; y: number; facing: number }[]) => void;
+  onCrowd?: (members: { id: string; name: string; x: number; y: number; facing: number; item?: CrowdItem }[]) => void;
   onPositions?: (players: Record<string, { x: number; y: number; facing: number }>) => void;
   onWardrobe?: (shirts: Record<string, WornShirt>) => void;
   onWelcome?: (playerId: string) => void;

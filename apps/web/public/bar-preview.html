@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bar — equip drink / snack — design sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Cabinet palette + Silkscreen, mirrored from tailwind.config.ts and the
+      // frog-cabinet-ui skill so this sandbox reads identically to the app.
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              cabinet: {
+                bg: "#12100a",
+                accent: "#f5b53f",
+                ink: "#1a1305",
+                frame: "#2a2212",
+                shadow: "#6b4e18",
+                btn: "#1a1710",
+                border: "#322a18",
+                text: "#ecdcb4",
+              },
+            },
+            fontFamily: { pixel: ['"Silkscreen"', "monospace"] },
+          },
+        },
+      };
+    </script>
+    <style>
+      @keyframes frog-bob {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+      }
+      .frog-bob { animation: frog-bob 1.4s ease-in-out infinite; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-cabinet-bg p-8 font-pixel text-cabinet-text">
+    <div class="mx-auto max-w-5xl">
+      <h1 class="mb-1 text-lg uppercase tracking-[0.3em] text-cabinet-accent">Bar — equip</h1>
+      <p class="mb-8 font-mono text-[12px] text-cabinet-text/50">
+        design sandbox. walk to the bar, press enter, pick a drink or a snack →
+        your frog carries it around the pit. two held props: a glass and a donut.
+      </p>
+
+      <!-- ============================================================ -->
+      <!-- 1. The choose panel (what pops when you press Enter at bar)   -->
+      <!-- ============================================================ -->
+      <h2 class="mb-3 text-xs uppercase tracking-[0.3em] text-cabinet-text/50">1 · choose panel</h2>
+      <div class="mb-12 grid place-items-center border-[3px] border-cabinet-frame bg-black/30 p-10">
+        <div class="border-[3px] border-cabinet-accent bg-cabinet-bg px-10 py-7 text-center shadow-[8px_8px_0_#6b4e18]">
+          <div class="text-sm uppercase tracking-widest text-cabinet-accent">Bar</div>
+          <div class="mt-1 font-mono text-[11px] lowercase tracking-wide text-cabinet-text/60">
+            grab something for the show
+          </div>
+          <div class="mt-5 flex gap-4">
+            <!-- DRINK -->
+            <button
+              class="flex w-32 flex-col items-center gap-2 border-2 border-cabinet-accent bg-cabinet-accent px-4 py-4 text-cabinet-ink hover:brightness-105"
+            >
+              <span id="glass-icon"></span>
+              <span class="text-[11px] uppercase tracking-widest">Drink</span>
+            </button>
+            <!-- SNACK -->
+            <button
+              class="flex w-32 flex-col items-center gap-2 border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-cabinet-text hover:border-cabinet-accent"
+            >
+              <span id="donut-icon"></span>
+              <span class="text-[11px] uppercase tracking-widest">Snack</span>
+            </button>
+          </div>
+          <button
+            class="mt-5 border-2 border-cabinet-border bg-cabinet-btn px-4 py-2 text-[10px] uppercase tracking-widest text-cabinet-text hover:border-cabinet-accent"
+          >
+            Esc · close
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- 2. Equipped frogs — the payoff. Same pit chrome as CrowdFloor -->
+      <!-- ============================================================ -->
+      <h2 class="mb-3 text-xs uppercase tracking-[0.3em] text-cabinet-text/50">2 · equipped in the pit</h2>
+      <div
+        class="relative h-[240px] overflow-hidden border-t-[3px] border-cabinet-accent bg-black/40"
+        style="background: #16130b"
+      >
+        <div class="absolute -top-1 left-0 right-0 flex justify-between px-2" id="footlights"></div>
+        <div
+          class="pointer-events-none absolute bottom-0 left-0 right-0 border-t-2 border-cabinet-frame bg-cabinet-frame/30"
+          style="height: 9%"
+        ></div>
+
+        <!-- drink frog -->
+        <div class="absolute" style="left: 30%; bottom: 9%; transform: translateX(-50%)">
+          <div class="mb-1 flex justify-center">
+            <span class="border border-cabinet-accent bg-cabinet-accent px-1 py-0.5 text-[8px] uppercase tracking-widest text-cabinet-ink">You</span>
+          </div>
+          <div class="frog-hold" data-item="drink"></div>
+        </div>
+
+        <!-- snack frog A — donut -->
+        <div class="absolute" style="left: 55%; bottom: 9%; transform: translateX(-50%)">
+          <div class="mb-1 flex justify-center">
+            <span class="border border-cabinet-border bg-cabinet-btn px-1 py-0.5 text-[8px] uppercase tracking-widest text-cabinet-text/70">Braydon</span>
+          </div>
+          <div class="frog-hold" data-item="donut"></div>
+        </div>
+
+        <!-- snack frog B — pizza -->
+        <div class="absolute" style="left: 80%; bottom: 9%; transform: translateX(-50%)">
+          <div class="mb-1 flex justify-center">
+            <span class="border border-cabinet-border bg-cabinet-btn px-1 py-0.5 text-[8px] uppercase tracking-widest text-cabinet-text/70">Erika</span>
+          </div>
+          <div class="frog-hold" data-item="pizza"></div>
+        </div>
+      </div>
+
+      <!-- item swatches, big, so the pixel art is legible -->
+      <h2 class="mb-3 mt-12 text-xs uppercase tracking-[0.3em] text-cabinet-text/50">3 · props (4×)</h2>
+      <div class="flex gap-16 border-[3px] border-cabinet-frame bg-black/30 p-12">
+        <div class="flex flex-col items-center gap-3">
+          <div style="transform: scale(4); transform-origin: center bottom" id="glass-big"></div>
+          <span class="text-[10px] uppercase tracking-widest text-cabinet-text/60">glass</span>
+        </div>
+        <div class="flex flex-col items-center gap-3">
+          <div style="transform: scale(4); transform-origin: center bottom" id="donut-big"></div>
+          <span class="text-[10px] uppercase tracking-widest text-cabinet-text/60">donut</span>
+        </div>
+        <div class="flex flex-col items-center gap-3">
+          <div style="transform: scale(4); transform-origin: center bottom" id="pizza-big"></div>
+          <span class="text-[10px] uppercase tracking-widest text-cabinet-text/60">pizza</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const FROG = "/frogs/crowd.png";
+
+      // --- the two held props ------------------------------------------
+      // Glass: tall tumbler, amber fill, white rim + highlight. Pixel-square.
+      function glass() {
+        return `
+          <span class="relative block h-6 w-4 border border-black bg-white/10">
+            <span class="absolute inset-x-0 top-0 h-0.5 bg-white/60"></span>
+            <span class="absolute inset-x-0 bottom-0 h-4 bg-cabinet-accent"></span>
+            <span class="absolute left-0.5 top-1 h-3 w-0.5 bg-white/40"></span>
+          </span>`;
+      }
+      // Donut: amber-glaze ring with a real punched-through center hole (the
+      // hole shows the background). Ring is a thick border; dark rim keeps the
+      // pixel edge. Three off-palette sprinkles so it reads as food.
+      function donut() {
+        return `
+          <span class="relative block h-6 w-6 rounded-full border-2 border-[#7a4a1a] bg-cabinet-accent">
+            <span class="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#7a4a1a] bg-cabinet-bg"></span>
+            <span class="absolute left-1 top-0.5 h-1 w-1 bg-red-600"></span>
+            <span class="absolute right-1 top-1.5 h-1 w-1 bg-cabinet-text"></span>
+            <span class="absolute bottom-1 left-1.5 h-1 w-1 bg-[#3f7d3a]"></span>
+          </span>`;
+      }
+      // Pizza slice: triangle (clip-path), tip down. Amber cheese base, red
+      // crust-line at the wide top, two pepperoni squares.
+      function pizza() {
+        return `
+          <span class="relative block h-6 w-6" style="clip-path: polygon(0 0, 100% 0, 50% 100%)">
+            <span class="absolute inset-0 bg-cabinet-accent"></span>
+            <span class="absolute inset-x-0 top-0 h-1.5 bg-[#a5551f]"></span>
+            <span class="absolute left-1.5 top-2 h-1.5 w-1.5 bg-red-700"></span>
+            <span class="absolute right-1.5 top-2 h-1.5 w-1.5 bg-red-700"></span>
+            <span class="absolute left-1/2 top-3.5 h-1 w-1 -translate-x-1/2 bg-red-700"></span>
+          </span>`;
+      }
+      const SNACKS = { donut, pizza };
+
+      // A frog carrying an item: item floats at hand height on the facing side.
+      function heldFrog(item) {
+        const prop = item === "drink" ? glass() : SNACKS[item]();
+        return `
+          <div class="relative frog-bob">
+            <img src="${FROG}" alt="" draggable="false" class="h-[74px] w-auto object-contain" />
+            <div class="absolute" style="right: -2px; bottom: 14px">${prop}</div>
+          </div>`;
+      }
+
+      document.querySelectorAll(".frog-hold").forEach((el) => {
+        el.innerHTML = heldFrog(el.dataset.item);
+      });
+
+      document.getElementById("glass-icon").innerHTML = glass();
+      document.getElementById("donut-icon").innerHTML = pizza();
+      document.getElementById("glass-big").innerHTML = glass();
+      document.getElementById("donut-big").innerHTML = donut();
+      document.getElementById("pizza-big").innerHTML = pizza();
+
+      // footlights, same as the pit
+      const fl = document.getElementById("footlights");
+      for (let i = 0; i < 44; i++) {
+        const s = document.createElement("span");
+        s.className =
+          "h-2 w-2 border border-black " + (i % 2 === 0 ? "bg-cabinet-accent" : "bg-cabinet-shadow");
+        fl.appendChild(s);
+      }
+    </script>
+  </body>
+</html>

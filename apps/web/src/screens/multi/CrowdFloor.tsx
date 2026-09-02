@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { CrowdItem, WornShirt } from "@typohero/protocol";
 import type { CrowdMember } from "../../net/useRoom";
 import { CROWD_FROG_IMAGE } from "../../characters";
 import { useCrowdWalk } from "../../game/useCrowdWalk";
 import { MerchShop } from "../../merch/MerchShop";
 import { SpriteShirt } from "../../merch/SpriteShirt";
 import { useWorn } from "../../merch/shirts";
-import type { WornShirt } from "@typohero/protocol";
 
 // The pit along the front of the stage. Spectators walk their own frog here
 // while the band plays; NPCs keep it full even when nobody has joined yet.
@@ -43,6 +43,32 @@ const NPCS = Array.from({ length: NPC_COUNT }, (_, i) => {
 
 function bobDuration(energy: number, offset = 0): string {
   return `${(1.55 - Math.max(0, Math.min(1, energy)) * 0.85 + offset).toFixed(2)}s`;
+}
+
+// What a frog carries after a bar visit. A tumbler with an amber pour, or a
+// pizza slice (clip-path triangle, tip down) with pepperoni. Off-palette reds
+// on the pizza so it reads as food, same trick as the DietCoke prop.
+const ITEM_LABEL: Record<CrowdItem, string> = { drink: "Drink", pizza: "Pizza" };
+
+function HeldItem({ item }: { item: CrowdItem }) {
+  if (item === "drink") {
+    return (
+      <span className="relative block h-6 w-4 border border-black bg-white/10">
+        <span className="absolute inset-x-0 top-0 h-0.5 bg-white/60" />
+        <span className="absolute inset-x-0 bottom-0 h-4 bg-cabinet-accent" />
+        <span className="absolute left-0.5 top-1 h-3 w-0.5 bg-white/40" />
+      </span>
+    );
+  }
+  return (
+    <span className="relative block h-6 w-6" style={{ clipPath: "polygon(0 0, 100% 0, 50% 100%)" }}>
+      <span className="absolute inset-0 bg-cabinet-accent" />
+      <span className="absolute inset-x-0 top-0 h-1.5 bg-[#a5551f]" />
+      <span className="absolute left-1.5 top-2 h-1.5 w-1.5 bg-red-700" />
+      <span className="absolute right-1.5 top-2 h-1.5 w-1.5 bg-red-700" />
+      <span className="absolute left-1/2 top-3.5 h-1 w-1 -translate-x-1/2 bg-red-700" />
+    </span>
+  );
 }
 
 // --- Hangout props ------------------------------------------------------
@@ -294,6 +320,56 @@ function InteractPrompt({ x }: { x: number }) {
   );
 }
 
+// The bar's Enter menu: grab a drink or a slice, or set it back down by
+// tapping the one you already hold. The pick rides the crowd channel so every
+// machine sees you carry it.
+function BarPanel({
+  equipped,
+  onPick,
+  onClose,
+}: {
+  equipped: CrowdItem | null;
+  onPick: (item: CrowdItem | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-30 grid place-items-center bg-black/50">
+      <div className="border-[3px] border-cabinet-accent bg-cabinet-bg px-8 py-6 text-center shadow-[8px_8px_0_#6b4e18]">
+        <div className="text-sm uppercase tracking-widest text-cabinet-accent">Bar</div>
+        <div className="mt-1 font-mono text-[11px] lowercase tracking-wide text-cabinet-text/60">
+          grab something for the show
+        </div>
+        <div className="mt-5 flex gap-4">
+          {(["drink", "pizza"] as const).map((it) => {
+            const on = equipped === it;
+            return (
+              <button
+                key={it}
+                onClick={() => onPick(on ? null : it)}
+                className={
+                  "flex w-28 flex-col items-center gap-2 border-2 px-4 py-4 text-[11px] uppercase tracking-widest " +
+                  (on
+                    ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
+                    : "border-cabinet-border bg-cabinet-btn text-cabinet-text hover:border-cabinet-accent")
+                }
+              >
+                <HeldItem item={it} />
+                <span>{on ? "Put down" : ITEM_LABEL[it]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-5 border-2 border-cabinet-border bg-cabinet-btn px-4 py-2 text-[10px] uppercase tracking-widest text-cabinet-text hover:border-cabinet-accent"
+        >
+          Esc · close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function InteractPanel({ spot, onClose }: { spot: Spot; onClose: () => void }) {
   // Merch is built: it takes over the screen, since the pit strip is far too
   // short to paint in.
@@ -345,6 +421,7 @@ function PitFrog({
   smooth = true,
   lift = 0,
   shirt,
+  item,
 }: {
   name?: string;
   x: number;
@@ -358,8 +435,10 @@ function PitFrog({
   smooth?: boolean;
   lift?: number;
   shirt?: WornShirt | null;
+  item?: CrowdItem;
 }) {
   const airborne = y > 0.4;
+  const visualDir = flip ? -facing : facing;
   return (
     <div
       className="absolute flex -translate-x-1/2 flex-col items-center"
@@ -397,11 +476,16 @@ function PitFrog({
           className="block w-auto object-contain"
           style={{
             height: `${Math.round(74 * scale)}px`,
-            transform: `scaleX(${flip ? -facing : facing})`,
+            transform: `scaleX(${visualDir})`,
             opacity: name ? 1 : 0.5,
           }}
         />
         <SpriteShirt shirt={shirt} />
+        {item && (
+          <div className="absolute" style={{ bottom: 14, [visualDir > 0 ? "right" : "left"]: -2 }}>
+            <HeldItem item={item} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -415,6 +499,7 @@ export function CrowdFloor({
   controllable,
   onMove,
   onInteract,
+  onEquip,
   energy,
 }: {
   crowd: CrowdMember[];
@@ -424,9 +509,12 @@ export function CrowdFloor({
   youName?: string;
   controllable: boolean;
   onMove?: (x: number, y: number, facing: -1 | 1) => void;
-  // Fired when you press Enter in front of a spot. Features aren't built yet;
+  // Fired when you press Enter in front of a spot. Merch/recs aren't built yet;
   // this is the hook for wiring them later.
   onInteract?: (id: SpotId) => void;
+  // Fired when you grab (or put down) something at the bar; rides the crowd
+  // channel so every machine sees you carry it.
+  onEquip?: (item: CrowdItem | null) => void;
   energy: number;
 }) {
   const [active, setActive] = useState<Spot | null>(null);
@@ -451,6 +539,13 @@ export function CrowdFloor({
     controllable && you.y < 3
       ? SPOTS.find((s) => Math.abs(s.x - you.x) < REACH) ?? null
       : null;
+
+  const [equipped, setEquipped] = useState<CrowdItem | null>(null);
+
+  const equip = (item: CrowdItem | null) => {
+    setEquipped(item);
+    onEquip?.(item);
+  };
 
   // Enter opens the spot you're near; Escape closes an open one. Enter isn't in
   // the walker's keymap, so listening here doesn't fight the movement handler.
@@ -513,6 +608,7 @@ export function CrowdFloor({
           energy={energy}
           shirt={wardrobe[c.id]}
           flip
+          item={c.item}
         />
       ))}
 
@@ -527,12 +623,17 @@ export function CrowdFloor({
           you
           flip
           smooth={false}
+          item={equipped ?? undefined}
         />
       )}
 
       {nearSpot && !active && <InteractPrompt x={nearSpot.x} />}
 
-      {active && <InteractPanel spot={active} onClose={() => setActive(null)} />}
+      {active?.id === "bar" ? (
+        <BarPanel equipped={equipped} onPick={equip} onClose={() => setActive(null)} />
+      ) : (
+        active && <InteractPanel spot={active} onClose={() => setActive(null)} />
+      )}
 
       <div className="pointer-events-none absolute bottom-1 right-2 text-[9px] uppercase tracking-widest text-cabinet-text/35">
         👥 {crowd.length}
