@@ -31,6 +31,8 @@ const EMPTY_CHART = { notes: [] };
 export function MultiPerformance({ roomId, room }: { roomId: string; room: Room }) {
   const snap = room.snapshot!;
   const me = snap.members.find((m) => m.id === room.playerId)!;
+  // A director watches the show they're running: the same stage, no lane on it.
+  const directing = me.director;
   const songs = useSongs();
   const song = songs?.find((s) => s.id === snap.songId) ?? null;
   const chartFile = useChart(snap.songId);
@@ -51,8 +53,8 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
 
   const { waiting: waitingForSong } = useCountIn(songStartMs);
   const { waiting: waitingForCue } = useCountIn(wordStartMs);
-  const rhythmLive = chart !== null && songStartMs !== null && !waitingForSong;
-  const wordLive = chart === null && wordStartMs !== null && !waitingForCue;
+  const rhythmLive = !directing && chart !== null && songStartMs !== null && !waitingForSong;
+  const wordLive = !directing && chart === null && wordStartMs !== null && !waitingForCue;
 
   const songTimeMs = useCallback(
     () => (songStartMs === null ? null : Date.now() - songStartMs - latencyOffsetMs()),
@@ -82,7 +84,7 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
     () => (chart ? liveStatFromRhythmRun(getRun()) : liveStatFromRun(wordRun)),
     [chart, getRun, wordRun],
   );
-  useStatBroadcast(liveStat, room.send);
+  useStatBroadcast(liveStat, room.send, 20, !directing);
 
   const laneQuality: Partial<Record<InstrumentLane, number>> = {};
   for (const m of snap.members) {
@@ -124,16 +126,16 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
       snapshot={snap}
       frame={room.frame}
       song={song}
-      youId={room.playerId}
+      youId={directing ? null : room.playerId}
       chart={rhythmOn ? chartFile : null}
-      local={local}
+      local={directing ? null : local}
       positions={room.positions}
-      onBandMove={onBandMove}
+      onBandMove={directing ? undefined : onBandMove}
       crowd={room.crowd}
       reactions={room.reactions}
       onReact={onReact}
       controllableCrowd={false}
-      rhythmRun={chart ? rhythmRun : null}
+      rhythmRun={chart && !directing ? rhythmRun : null}
     />
   );
 }

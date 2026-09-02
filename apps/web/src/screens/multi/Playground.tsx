@@ -220,6 +220,7 @@ export function Playground({
   bandName,
   crowd,
   wardrobe = {},
+  youOnStage = true,
 }: {
   mode: "band" | "crowd";
   youId: string | null;
@@ -231,11 +232,13 @@ export function Playground({
   bandName: string;
   crowd: CrowdMember[];
   wardrobe?: Record<string, WornShirt>;
+  /** False for a director: they watch the yard without a frog in it. */
+  youOnStage?: boolean;
 }) {
   const [zLo, zHi] = mode === "band" ? [BAND_MIN, BAND_MAX] : [CROWD_MIN, CROWD_MAX];
   const startX = mode === "band" ? 80 : 30;
 
-  const you = useCrowdWalk({ enabled: true, startX, zone: { min: zLo, max: zHi }, onMove });
+  const you = useCrowdWalk({ enabled: youOnStage, startX, zone: { min: zLo, max: zHi }, onMove });
 
   const bandActors = members.filter((m) => m.connected && !(mode === "band" && m.id === youId));
   const crowdActors = crowd.filter((c) => !(mode === "crowd" && c.id === youId));
@@ -280,19 +283,23 @@ export function Playground({
           return <FrogSprite key={m.id} name={m.name} image={frog.image} x={p.x} y={p.y} facing={p.facing} />;
         })}
 
-        <FrogSprite
-          name={youName}
-          image={youImage}
-          x={you.x}
-          y={you.y}
-          facing={you.facing}
-          shirt={mode === "crowd" ? yourShirt : null}
-          flip={mode === "crowd"}
-          you
-        />
+        {youOnStage && (
+          <FrogSprite
+            name={youName}
+            image={youImage}
+            x={you.x}
+            y={you.y}
+            facing={you.facing}
+            shirt={mode === "crowd" ? yourShirt : null}
+            flip={mode === "crowd"}
+            you
+          />
+        )}
       </div>
       <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-cabinet-text/40">
-        ← → or A/D to run · space / ↑ / W to jump · press again mid-air to double jump
+        {youOnStage
+          ? "← → or A/D to run · space / ↑ / W to jump · press again mid-air to double jump"
+          : "you're behind the desk — the band roams, you watch"}
       </div>
     </div>
   );

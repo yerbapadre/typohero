@@ -239,7 +239,13 @@ export class GameRoom extends DurableObject<Env> {
       this.tokens.set(token, playerId);
     }
     conn.playerId = playerId;
-    this.apply({ t: "join", id: playerId, name: msg.name, character: msg.character });
+    this.apply({
+      t: "join",
+      id: playerId,
+      name: msg.name,
+      character: msg.character,
+      director: msg.director,
+    });
     this.send(conn.ws, {
       type: "welcome",
       playerId,
@@ -273,6 +279,8 @@ export class GameRoom extends DurableObject<Env> {
         return { t: "ready", id, ready: msg.ready };
       case "setAudioOutput":
         return { t: "setAudioOutput", id, on: msg.on };
+      case "setDirector":
+        return { t: "setDirector", id, on: msg.on };
       case "proposeSong":
         return { t: "proposeSong", id, songId: msg.songId, durationMs: msg.durationMs };
       case "confirmSong":

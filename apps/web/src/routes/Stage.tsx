@@ -123,7 +123,7 @@ function PreShow({
   crowd: CrowdMember[];
   wardrobe: Record<string, WornShirt>;
 }) {
-  const band = snapshot.members.filter((m) => m.connected);
+  const band = snapshot.members.filter((m) => m.connected && !m.director);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-cabinet-bg font-pixel text-cabinet-text">

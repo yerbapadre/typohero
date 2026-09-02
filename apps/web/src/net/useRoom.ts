@@ -36,6 +36,7 @@ export function useRoom(
   character?: Character,
   spectatorId?: string,
   observer = false,
+  director = false,
 ): Room {
   const [snapshot, setSnapshot] = useState<RoomState | null>(null);
   const [frame, setFrame] = useState<Record<string, LiveStat>>({});
@@ -73,11 +74,12 @@ export function useRoom(
       character,
       spectatorId,
       observer,
+      director,
     );
     clientRef.current = client;
     client.connect();
     return () => client.close();
-  }, [roomId, name, spectate, character?.faceId, spectatorId, observer]);
+  }, [roomId, name, spectate, character?.faceId, spectatorId, observer, director]);
 
   // Drop bursts once they have finished floating. Without this the last few of
   // a run would sit in the tree invisibly until the next reaction swept them up.

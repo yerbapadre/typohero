@@ -13,7 +13,9 @@ export function MultiResults({
   youId: string | null;
 }) {
   const { reset } = useNav();
+  // Directors ran the show rather than played it — they don't get a line here.
   const ranked = members
+    .filter((m) => !m.director)
     .map((m) => ({ m, s: frame[m.id] }))
     .sort((a, b) => (b.s?.points ?? 0) - (a.s?.points ?? 0));
   const bandTotal = ranked.reduce((sum, r) => sum + (r.s?.points ?? 0), 0);

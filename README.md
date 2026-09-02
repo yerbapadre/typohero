@@ -21,6 +21,11 @@ Client routes: `/` mode select, `/solo/*` single-player flow, `/band` + `/room/:
 lobby and performance, `/crowd` + `/crowd/:code` spectators, `/stage` big-screen view. Everything
 sits behind a password gate (`apps/web/src/ui/Gate.tsx`).
 
+`/room/:code?direct=1` joins as a **director**: you take a seat on the roster and run the show —
+the song, the note style, the sound, the start — but take no instrument, no lane and no frog on
+the riser. Toggle it either way from the lobby. Directors are excluded from the ready check, the
+scoreboard and the band total, so a room of directors alone can never start a song.
+
 - **Audio plays only on the Stage machine** (wired to venue speakers) — no cross-device sync problem.
 - **Controllers** send keystroke/state events; the DO relays; the Stage renders the highway + reacts audio.
 - **Animation** (note highway, particles) is a canvas renderer on its own rAF loop, decoupled from React.

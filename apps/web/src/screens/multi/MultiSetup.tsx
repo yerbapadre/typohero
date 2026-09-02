@@ -20,9 +20,10 @@ export function MultiSetup({ room }: { room: Room }) {
   const songs = useSongs();
   const me = snap.members.find((m) => m.id === room.playerId);
   const isHost = snap.hostId === room.playerId;
+  const directing = me?.director ?? false;
   const song = songs?.find((s) => s.id === snap.songId) ?? null;
   const available = new Set<InstrumentLane>(song ? presentLanes(song) : INSTRUMENT_LANES);
-  const connected = snap.members.filter((m) => m.connected);
+  const connected = snap.members.filter((m) => m.connected && !m.director);
   const readyCount = connected.filter((m) => m.ready && m.instrument).length;
   const allReady = connected.length > 0 && readyCount === connected.length;
 
@@ -79,9 +80,15 @@ export function MultiSetup({ room }: { room: Room }) {
         <div className="text-xs uppercase tracking-widest text-cabinet-text/40">band setup</div>
         <h1 className="mt-2 text-2xl font-bold tracking-wide text-white md:text-3xl">
           {snap.songId ? (
-            <>
-              YOUR <span className="text-cabinet-accent">PART</span>
-            </>
+            directing ? (
+              <>
+                THE <span className="text-cabinet-accent">DESK</span>
+              </>
+            ) : (
+              <>
+                YOUR <span className="text-cabinet-accent">PART</span>
+              </>
+            )
           ) : (
             <>
               PICK A <span className="text-cabinet-accent">SONG</span>
@@ -99,12 +106,16 @@ export function MultiSetup({ room }: { room: Room }) {
               key={m.id}
               className={
                 "flex items-center gap-1.5 border-2 px-2 py-1 text-[10px] uppercase tracking-widest " +
-                (m.ready ? "border-cabinet-accent text-cabinet-accent" : "border-cabinet-border text-cabinet-text/50")
+                (m.director
+                  ? "border-cabinet-border text-cabinet-text/50"
+                  : m.ready
+                    ? "border-cabinet-accent text-cabinet-accent"
+                    : "border-cabinet-border text-cabinet-text/50")
               }
             >
-              {f && <img src={f.image} alt="" className="h-4 w-4 object-contain" />}
+              {m.director ? "🎛" : f && <img src={f.image} alt="" className="h-4 w-4 object-contain" />}
               {m.name}
-              {m.ready ? " ✓" : ""}
+              {m.director ? "" : m.ready ? " ✓" : ""}
             </div>
           );
         })}
@@ -175,12 +186,18 @@ export function MultiSetup({ room }: { room: Room }) {
         </>
       ) : (
         <>
-          <InstrumentGrid
-            value={me.instrument ?? null}
-            available={available}
-            taken={takenLanes}
-            onPick={(lane) => room.send({ type: "pickInstrument", instrument: lane })}
-          />
+          {directing ? (
+            <div className="max-w-md border-[3px] border-cabinet-frame bg-black/15 px-6 py-4 text-center text-[11px] uppercase tracking-widest text-cabinet-text/50">
+              🎛 you're directing — no instrument, no lane. pick the song, set the sound, start the show.
+            </div>
+          ) : (
+            <InstrumentGrid
+              value={me.instrument ?? null}
+              available={available}
+              taken={takenLanes}
+              onPick={(lane) => room.send({ type: "pickInstrument", instrument: lane })}
+            />
+          )}
 
           {isHost && (
             <CabinetButton variant="ghost" onClick={() => room.send({ type: "clearSong" })}>
@@ -203,10 +220,17 @@ export function MultiSetup({ room }: { room: Room }) {
                           {m.id === snap.hostId ? "★ " : ""}
                           {m.name}
                           {mine ? " (you)" : ""}
-                          <span className="text-cabinet-text/40"> · {m.instrument ?? "no instrument"}</span>
+                          <span className="text-cabinet-text/40">
+                            {" · "}
+                            {m.director ? "🎛 director" : (m.instrument ?? "no instrument")}
+                          </span>
                         </span>
                       </span>
-                      {mine ? (
+                      {m.director ? (
+                        <span className="shrink-0 text-[10px] uppercase tracking-widest text-cabinet-text/30">
+                          at the desk
+                        </span>
+                      ) : mine ? (
                         <CabinetButton
                           size="sm"
                           selected={m.ready}
@@ -230,7 +254,7 @@ export function MultiSetup({ room }: { room: Room }) {
 
                     {mine ? (
                       <div className="mt-3 flex flex-col gap-2">
-                        <div className="flex flex-wrap gap-1">
+                        <div className={"flex flex-wrap gap-1 " + (m.director ? "hidden" : "")}>
                           {DIFFICULTIES.map((d) => (
                             <CabinetButton
                               key={d}
@@ -261,7 +285,8 @@ export function MultiSetup({ room }: { room: Room }) {
                       </div>
                     ) : (
                       <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-text/40">
-                        {m.difficulty} · {m.audioOutput ? "🔊 audio" : "muted"}
+                        {m.director ? "running the show" : m.difficulty} ·{" "}
+                        {m.audioOutput ? "🔊 audio" : "muted"}
                       </div>
                     )}
                   </div>
