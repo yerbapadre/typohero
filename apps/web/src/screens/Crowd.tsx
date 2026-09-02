@@ -5,6 +5,15 @@ import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import { CROWD_FROG_IMAGE } from "../characters";
 import { CabinetPage } from "../ui/CabinetPage";
+import { NameEntry } from "../ui/NameEntry";
+import {
+  CabinetButton,
+  CabinetField,
+  CabinetInput,
+  CabinetPanel,
+  CabinetStatus,
+  RoomHeader,
+} from "../ui/cabinet";
 import { Playground } from "./multi/Playground";
 import { StageView } from "./multi/StageView";
 import { MultiResults } from "./multi/MultiResults";
@@ -37,46 +46,36 @@ export function CrowdEntry() {
         className="h-32 w-auto select-none object-contain md:h-40"
       />
 
-      <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
+      <CabinetPanel className="w-full max-w-md">
         <div className="flex flex-col gap-5">
-          <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-widest text-cabinet-accent">Your name</span>
-            <input
+          <CabinetField label="Your name">
+            <CabinetInput
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="frog sinatra"
-              className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-sm text-cabinet-text outline-none placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
             />
-          </label>
+          </CabinetField>
 
-          <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-widest text-cabinet-accent">Band code</span>
-            <input
+          <CabinetField label="Band code">
+            <CabinetInput
+              code
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="code"
               maxLength={4}
-              className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-xl uppercase tracking-[0.4em] text-cabinet-text outline-none placeholder:tracking-widest placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
             />
-          </label>
+          </CabinetField>
 
-          <button
-            disabled={!name || !code}
-            onClick={watch}
-            className="w-full border-2 border-cabinet-accent bg-cabinet-accent px-5 py-5 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
-          >
+          <CabinetButton variant="primary" full disabled={!name || !code} onClick={watch}>
             Watch the Show →
-          </button>
+          </CabinetButton>
         </div>
-      </div>
+      </CabinetPanel>
 
-      <button
-        className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
-        onClick={() => navigate("/")}
-      >
+      <CabinetButton variant="ghost" onClick={() => navigate("/")}>
         ← Back
-      </button>
+      </CabinetButton>
     </CabinetPage>
   );
 }
@@ -86,49 +85,18 @@ export function CrowdView() {
   const navigate = useNavigate();
   const roomId = (code ?? "").toUpperCase();
   const [name, setName] = useState(() => sessionStorage.getItem(NAME_KEY) ?? "");
-  const [draft, setDraft] = useState("");
 
   if (!name) {
     return (
-      <CabinetPage
+      <NameEntry
         subtitle={`joining crowd ${roomId}`}
-        title={
-          <>
-            WHO ARE <span className="text-cabinet-accent">YOU?</span>
-          </>
-        }
-      >
-        <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
-          <div className="flex flex-col gap-5">
-            <label className="flex flex-col gap-2">
-              <span className="text-xs uppercase tracking-widest text-cabinet-accent">Your name</span>
-              <input
-                autoFocus
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="frog sinatra"
-                className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-sm text-cabinet-text outline-none placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
-              />
-            </label>
-            <button
-              disabled={!draft}
-              onClick={() => {
-                sessionStorage.setItem(NAME_KEY, draft);
-                setName(draft);
-              }}
-              className="w-full border-2 border-cabinet-accent bg-cabinet-accent px-5 py-5 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
-            >
-              Watch {roomId} →
-            </button>
-          </div>
-        </div>
-        <button
-          className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
-          onClick={() => navigate("/")}
-        >
-          ← Back
-        </button>
-      </CabinetPage>
+        cta={`Watch ${roomId} →`}
+        onBack={() => navigate("/")}
+        onSubmit={(next) => {
+          sessionStorage.setItem(NAME_KEY, next);
+          setName(next);
+        }}
+      />
     );
   }
 
@@ -156,11 +124,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
   );
 
   if (!snap) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
-        joining the crowd at {roomId}…
-      </div>
-    );
+    return <CabinetStatus>joining the crowd at {roomId}…</CabinetStatus>;
   }
 
   if (snap.phase === "results") {
@@ -188,13 +152,11 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
 
   return (
     <div className="flex min-h-screen flex-col items-center gap-5 bg-cabinet-bg px-6 pb-10 pt-10 font-pixel text-cabinet-text">
-      <header className="text-center">
-        <div className="text-xs uppercase tracking-widest text-cabinet-text/40">now watching</div>
-        <div className="mt-1 text-4xl font-bold tracking-[0.3em] text-cabinet-accent md:text-5xl">{roomId}</div>
-        <div className="mt-1 text-[11px] uppercase tracking-widest text-cabinet-text/40">
-          in the crowd as {name} · 👥 {room.crowd.length}
-        </div>
-      </header>
+      <RoomHeader
+        eyebrow="now watching"
+        code={roomId}
+        caption={`in the crowd as ${name} · 👥 ${room.crowd.length}`}
+      />
 
       <div className="w-full">
         <Playground
@@ -210,12 +172,9 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         />
       </div>
 
-      <button
-        className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
-        onClick={() => navigate("/")}
-      >
+      <CabinetButton variant="ghost" onClick={() => navigate("/")}>
         ← Leave crowd
-      </button>
+      </CabinetButton>
     </div>
   );
 }

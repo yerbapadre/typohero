@@ -4,6 +4,7 @@ import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import type { CrowdMember } from "../net/useRoom";
 import { CabinetPage } from "../ui/CabinetPage";
+import { CabinetButton, CabinetField, CabinetInput, CabinetPanel, CabinetStatus } from "../ui/cabinet";
 import { StageView } from "../screens/multi/StageView";
 import { MultiResults } from "../screens/multi/MultiResults";
 import { CrowdFloor } from "../screens/multi/CrowdFloor";
@@ -44,28 +45,29 @@ function StageEntry({ onSubmit }: { onSubmit: (code: string) => void }) {
         </>
       }
     >
-      <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
-        <div className="flex flex-col gap-5">
-          <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-widest text-cabinet-accent">Band code</span>
-            <input
+      <CabinetPanel className="w-full max-w-md">
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (draft.length === 4) onSubmit(draft);
+          }}
+        >
+          <CabinetField label="Band code">
+            <CabinetInput
+              code
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value.toUpperCase())}
               placeholder="code"
               maxLength={4}
-              className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-xl uppercase tracking-[0.4em] text-cabinet-text outline-none placeholder:tracking-widest placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
             />
-          </label>
-          <button
-            disabled={draft.length < 4}
-            onClick={() => onSubmit(draft)}
-            className="w-full border-2 border-cabinet-accent bg-cabinet-accent px-5 py-5 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
-          >
+          </CabinetField>
+          <CabinetButton type="submit" variant="primary" full disabled={draft.length < 4}>
             Open the Stage →
-          </button>
-        </div>
-      </div>
+          </CabinetButton>
+        </form>
+      </CabinetPanel>
     </CabinetPage>
   );
 }
@@ -77,11 +79,7 @@ function StageScreen({ roomId }: { roomId: string }) {
   const song = songs?.find((s) => s.id === snap?.songId) ?? null;
 
   if (!snap) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
-        opening the stage at {roomId}…
-      </div>
-    );
+    return <CabinetStatus>opening the stage at {roomId}…</CabinetStatus>;
   }
 
   if (snap.phase === "results") {

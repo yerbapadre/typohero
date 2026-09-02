@@ -1,6 +1,8 @@
 import { DIFFICULTY_WPM, type Difficulty } from "@typohero/engine";
 import { useNavigate } from "react-router-dom";
 import { useNav } from "../nav/NavContext";
+import { CabinetPage } from "../ui/CabinetPage";
+import { CabinetPanel, Pips, WizardNav } from "../ui/cabinet";
 
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
 
@@ -9,33 +11,52 @@ export function DifficultySelect() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex min-h-screen flex-col items-center gap-8 bg-neutral-900 py-16 text-white">
-      <h1 className="text-2xl">Pick your difficulty</h1>
+    <CabinetPage
+      subtitle="single player"
+      title={
+        <>
+          PICK YOUR <span className="text-cabinet-accent">DIFFICULTY</span>
+        </>
+      }
+    >
+      <CabinetPanel tight className="w-full max-w-md">
+        <div className="flex flex-col gap-2">
+          {DIFFICULTIES.map((d, i) => {
+            const active = d === config.difficulty;
+            return (
+              <button
+                key={d}
+                onClick={() => setConfig({ difficulty: d })}
+                className={
+                  "flex items-center justify-between gap-3 border-2 px-4 py-3 text-left font-pixel transition-colors " +
+                  (active
+                    ? "border-cabinet-accent bg-cabinet-accent/10"
+                    : "border-cabinet-border bg-cabinet-btn hover:border-cabinet-accent")
+                }
+              >
+                <span
+                  className={
+                    "text-sm uppercase tracking-widest " +
+                    (active ? "text-cabinet-accent" : "text-cabinet-text")
+                  }
+                >
+                  {d}
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="font-mono text-[11px] text-cabinet-text/40">{DIFFICULTY_WPM[d]} wpm</span>
+                  <Pips value={i + 1} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </CabinetPanel>
 
-      <div className="flex w-full max-w-sm flex-col gap-2">
-        {DIFFICULTIES.map((d) => (
-          <button
-            key={d}
-            onClick={() => setConfig({ difficulty: d })}
-            className={
-              "flex items-center justify-between rounded-lg px-4 py-3 text-left font-mono " +
-              (d === config.difficulty ? "bg-green-500/15 ring-1 ring-green-400" : "bg-neutral-800 hover:bg-neutral-700")
-            }
-          >
-            <span>{d}</span>
-            <span className="text-sm text-neutral-500">{DIFFICULTY_WPM[d]} wpm</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-4 flex gap-4">
-        <button className="text-neutral-500" onClick={() => navigate("/solo/instrument")}>
-          Back
-        </button>
-        <button onClick={() => navigate("/solo/text")} className="text-lg text-green-400">
-          Next: Text →
-        </button>
-      </div>
-    </div>
+      <WizardNav
+        onBack={() => navigate("/solo/instrument")}
+        onNext={() => navigate("/solo/text")}
+        nextLabel="Next: Text →"
+      />
+    </CabinetPage>
   );
 }
