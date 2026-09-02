@@ -132,7 +132,7 @@ export function StageView({
 
         {youLane >= 0 && !!onBandMove && (
           <div className="pointer-events-none absolute bottom-2 right-3 text-[9px] uppercase tracking-widest text-cabinet-text/30">
-            ← → walk the stage · ↑ jump
+            ← → walk the stage · ↑ jump · ↑↑ double jump
           </div>
         )}
       </div>

@@ -4,13 +4,15 @@
 
 export type WalkZone = { min: number; max: number };
 export type WalkState = { x: number; y: number; facing: 1 | -1 };
-export type WalkTuning = { run: number; gravity: number; jump: number };
+// `jumps` counts every hop in one trip off the floor: 2 is a ground jump plus
+// one mid-air kick.
+export type WalkTuning = { run: number; gravity: number; jump: number; jumps: number };
 
-export const GROUND_TUNING: WalkTuning = { run: 0.42, gravity: 0.14, jump: 2.6 };
+export const GROUND_TUNING: WalkTuning = { run: 0.42, gravity: 0.14, jump: 2.6, jumps: 2 };
 
 // The riser is a shallow shelf upstage, so a performer takes shorter steps and
 // a tighter hop than someone with the whole pit to run around in.
-export const RISER_TUNING: WalkTuning = { run: 0.34, gravity: 0.2, jump: 2.3 };
+export const RISER_TUNING: WalkTuning = { run: 0.34, gravity: 0.2, jump: 2.3, jumps: 2 };
 
 // A performing frog only answers to the arrow keys: every letter, space and
 // backspace belongs to the typing run while the band is playing.
@@ -37,7 +39,9 @@ export function createWalker(opts: {
 
   const state: WalkState = { x: opts.startX, y: 0, facing: 1 };
   const held = new Set<string>();
+  const jumpHeld = new Set<string>();
   let jumpQueued = false;
+  let jumpsUsed = 0;
   let vy = 0;
   let grounded = true;
 
@@ -45,7 +49,12 @@ export function createWalker(opts: {
   function down(key: string): boolean {
     const k = key.toLowerCase();
     if (jumpKeys.has(k)) {
-      jumpQueued = true;
+      // The OS repeats keydown while a key is leaned on; only a fresh press
+      // spends a hop, so holding jump can't burn the mid-air one on the way up.
+      if (!jumpHeld.has(k)) {
+        jumpHeld.add(k);
+        jumpQueued = true;
+      }
       return true;
     }
     if (runKeys.has(k)) {
@@ -56,11 +65,15 @@ export function createWalker(opts: {
   }
 
   function up(key: string): void {
-    held.delete(key.toLowerCase());
+    const k = key.toLowerCase();
+    held.delete(k);
+    jumpHeld.delete(k);
   }
 
   function clear(): void {
     held.clear();
+    jumpHeld.clear();
+    jumpQueued = false;
   }
 
   // One fixed step of the sim. Reports whether anything actually moved, so a
@@ -71,9 +84,12 @@ export function createWalker(opts: {
     if (held.has("arrowright") || held.has("d")) dx += 1;
 
     if (jumpQueued) {
-      if (grounded) {
+      if (jumpsUsed < tuning.jumps) {
+        // A mid-air kick replaces whatever fall was underway rather than adding
+        // to it, so the second hop reads the same however late it is pressed.
         vy = tuning.jump;
         grounded = false;
+        jumpsUsed += 1;
       }
       jumpQueued = false;
     }
@@ -90,6 +106,7 @@ export function createWalker(opts: {
       y = 0;
       vy = 0;
       grounded = true;
+      jumpsUsed = 0;
     }
     state.y = y;
     return true;

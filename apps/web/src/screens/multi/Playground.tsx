@@ -292,7 +292,7 @@ export function Playground({
         />
       </div>
       <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-cabinet-text/40">
-        ← → or A/D to run · space / ↑ / W to jump
+        ← → or A/D to run · space / ↑ / W to jump · press again mid-air to double jump
       </div>
     </div>
   );
