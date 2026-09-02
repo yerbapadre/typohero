@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import type { CrowdItem, EmoteKind, WornShirt } from "@typohero/protocol";
 import type { Booth, Product } from "@typohero/engine";
 import type { CrowdMember, Emote } from "../../net/useRoom";
 import { CROWD_FROG_IMAGE } from "../../characters";
 import { CrowdFrog } from "../../ui/CrowdFrog";
-import { useCrowdWalk } from "../../game/useCrowdWalk";
+import { useCrowdWalk, type WalkControls } from "../../game/useCrowdWalk";
 import { MerchShop } from "../../merch/MerchShop";
 import { SpriteShirt } from "../../merch/SpriteShirt";
 import { useWorn } from "../../merch/shirts";
@@ -394,12 +394,16 @@ function BoothTabs({ value, onChange }: { value: MerchTab; onChange: (t: MerchTa
   );
 }
 
+// Booths are proximity+Enter targets for keyboard players, but also directly
+// tappable — the only way in on touch, where there's no arrow-key walk to close
+// the distance. Scaled down on phones so the props fit a narrow pit.
 function SpotProp({ spot, onOpen }: { spot: Spot; onOpen?: () => void }) {
   const inner = <div className="pointer-events-none">{spot.render()}</div>;
+  const posClass = "absolute z-10 origin-bottom -translate-x-1/2 scale-[0.55] md:scale-100";
   if (!onOpen) {
     return (
       <div
-        className="pointer-events-none absolute -translate-x-1/2"
+        className={"pointer-events-none " + posClass}
         style={{ left: `${spot.x}%`, bottom: `${GROUND}%` }}
       >
         {inner}
@@ -410,7 +414,7 @@ function SpotProp({ spot, onOpen }: { spot: Spot; onOpen?: () => void }) {
     <button
       onClick={onOpen}
       aria-label={`open ${spot.label}`}
-      className="absolute -translate-x-1/2 cursor-pointer hover:outline hover:outline-2 hover:outline-cabinet-accent"
+      className={"cursor-pointer hover:outline hover:outline-2 hover:outline-cabinet-accent " + posClass}
       style={{ left: `${spot.x}%`, bottom: `${GROUND}%` }}
     >
       {inner}
@@ -428,6 +432,56 @@ function InteractPrompt({ x }: { x: number }) {
         Enter
       </div>
       <span className="text-[10px] leading-none text-cabinet-accent">▾</span>
+    </div>
+  );
+}
+
+// On-screen movement pad for touch — mobile has no arrow keys. Each button
+// feeds the walker the matching arrow key on press and releases it on lift, so
+// the physics are identical to keyboard play. Hidden on desktop (md:hidden).
+function PadButton({
+  label,
+  keyName,
+  press,
+  release,
+  className = "",
+}: {
+  label: string;
+  keyName: string;
+  press: (k: string) => void;
+  release: (k: string) => void;
+  className?: string;
+}) {
+  const start = (e: ReactPointerEvent) => {
+    e.preventDefault();
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+    press(keyName);
+  };
+  const end = () => release(keyName);
+  return (
+    <button
+      aria-label={label}
+      onPointerDown={start}
+      onPointerUp={end}
+      onPointerLeave={end}
+      onPointerCancel={end}
+      onContextMenu={(e) => e.preventDefault()}
+      className={
+        "flex h-16 w-16 select-none touch-none items-center justify-center border-2 border-cabinet-accent bg-cabinet-btn/85 text-2xl text-cabinet-accent shadow-[2px_2px_0_#6b4e18] active:bg-cabinet-accent active:text-cabinet-ink " +
+        className
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+function Gamepad({ press, release }: WalkControls) {
+  return (
+    <div className="pointer-events-none absolute bottom-3 left-3 z-30 flex items-end gap-2 md:hidden">
+      <PadButton label="◀" keyName="arrowleft" press={press} release={release} className="pointer-events-auto" />
+      <PadButton label="▶" keyName="arrowright" press={press} release={release} className="pointer-events-auto" />
+      <PadButton label="▲" keyName="arrowup" press={press} release={release} className="pointer-events-auto ml-1" />
     </div>
   );
 }
@@ -635,6 +689,7 @@ export function CrowdFloor({
     equip(productId);
   }
 
+
   // Enter opens the spot you're near; Escape closes an open one. Enter isn't in
   // the walker's keymap, so listening here doesn't fight the movement handler.
   const nearRef = useRef(nearSpot);
@@ -728,6 +783,8 @@ export function CrowdFloor({
 
       {nearSpot && !active && <InteractPrompt x={nearSpot.x} />}
 
+      {controllable && !active && <Gamepad press={you.press} release={you.release} />}
+
       {active?.id === "merch" && merchTab === "shirt" ? (
         <MerchShop
           onClose={() => setActive(null)}
@@ -754,7 +811,12 @@ export function CrowdFloor({
         {store.wallet && <LeCoin amount={store.wallet.balance} className="text-cabinet-accent" />}
         <span>
           👥 {crowd.length}
-          {controllable && " · ← → run · space cheer · enter interact · 1/2/3 emote"}
+          {controllable && (
+            <span className="hidden md:inline">
+              {" "}
+              · ← → run · space cheer · enter interact · 1/2/3 emote
+            </span>
+          )}
         </span>
       </div>
     </div>

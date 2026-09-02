@@ -127,7 +127,8 @@ export function StageView({
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1">
+      {/* Stage + lane highway. Hidden on phones — the pit takes the whole screen. */}
+      <div className="relative hidden min-h-0 flex-1 md:block">
         {lanes === 0 ? (
           <div className="grid h-full place-items-center text-xs uppercase tracking-widest text-cabinet-text/40">
             waiting for the band to pick up their instruments
@@ -160,8 +161,11 @@ export function StageView({
         />
       )}
 
-      <div className="h-[21vh] min-h-[150px] shrink-0">
-        <CrowdFloor
+      {/* On phones the stage is hidden, so the pit sits pinned to the bottom of the
+          dark venue; on desktop it's a fixed strip under the stage. */}
+      <div className="flex min-h-0 flex-1 flex-col justify-end md:h-[21vh] md:min-h-[150px] md:flex-none">
+        <div className="h-[40vh] min-h-[200px] md:h-full">
+          <CrowdFloor
           crowd={crowd}
           wardrobe={wardrobe}
           youId={crowdYouId ?? null}
@@ -173,7 +177,8 @@ export function StageView({
           onEmote={onEmote}
           emotes={emotes}
           energy={energy}
-        />
+          />
+        </div>
       </div>
 
       {footer && <div className="shrink-0 border-t-2 border-cabinet-frame bg-black/30">{footer}</div>}

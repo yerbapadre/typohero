@@ -8,12 +8,19 @@ export type { WalkZone, WalkState } from "./walk";
 
 const SEND_MS = 55;
 
+// Touch-pad handle: feed the walker the same "keys" a keyboard would, so an
+// on-screen d-pad drives identical physics. Directions map to arrow keys.
+export type WalkControls = {
+  press: (key: string) => void;
+  release: (key: string) => void;
+};
+
 export function useCrowdWalk(opts: {
   enabled: boolean;
   startX: number;
   zone: WalkZone;
   onMove: (x: number, y: number, facing: -1 | 1) => void;
-}): WalkState {
+}): WalkState & WalkControls {
   const { enabled, startX, zone, onMove } = opts;
 
   const [pos, setPos] = useState({ x: startX, y: 0 });
@@ -72,5 +79,10 @@ export function useCrowdWalk(opts: {
     return () => cancelAnimationFrame(raf);
   }, [enabled, walker]);
 
-  return { x: pos.x, y: pos.y, facing };
+  const controls = useRef<WalkControls>({
+    press: (key) => walker.down(key),
+    release: (key) => walker.up(key),
+  });
+
+  return { x: pos.x, y: pos.y, facing, press: controls.current.press, release: controls.current.release };
 }
