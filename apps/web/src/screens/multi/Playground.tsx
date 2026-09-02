@@ -6,6 +6,7 @@ import type { CrowdMember, Position } from "../../net/useRoom";
 import { FROGS, frogById, CROWD_FROG_IMAGE } from "../../characters";
 import { CrowdFrog } from "../../ui/CrowdFrog";
 import { useCrowdWalk } from "../../game/useCrowdWalk";
+import { Gamepad } from "./Gamepad";
 
 const GROUND = 8; // % baseline above the floor
 
@@ -303,6 +304,8 @@ export function Playground({
             you
           />
         )}
+
+        {youOnStage && <Gamepad press={you.press} release={you.release} />}
       </div>
       <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-cabinet-text/40">
         {youOnStage
