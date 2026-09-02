@@ -1,9 +1,14 @@
 import { useEffect, useRef } from "react";
 import {
   INSTRUMENT_LANES,
+  PASSAGES,
+  firstPassage,
+  passageById,
   presentLanes,
   type Difficulty,
   type InstrumentLane,
+  type Member,
+  type Passage,
 } from "@typohero/engine";
 import type { Room } from "../../net/useRoom";
 import { useSongs } from "../../net/useSongs";
@@ -15,6 +20,13 @@ import { CabinetButton, CabinetPanel } from "../../ui/cabinet";
 import { SongCard } from "../SongCard";
 
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "god"];
+
+// The words a member will actually type. Mirrors the fallback in
+// MultiPerformance and useStageScene, so the setup screen shows the passage the
+// show is really going to use — including before anyone has picked one.
+function passageFor(m: Member): Passage {
+  return (m.passageId && passageById(m.passageId)) || firstPassage();
+}
 
 export function MultiSetup({ room }: { room: Room }) {
   const snap = room.snapshot!;
@@ -268,18 +280,42 @@ export function MultiSetup({ room }: { room: Room }) {
                     </div>
 
                     {mine ? (
-                      <div className="mt-3 flex flex-col gap-2">
-                        <div className={"flex flex-wrap gap-1 " + (m.director ? "hidden" : "")}>
-                          {DIFFICULTIES.map((d) => (
-                            <CabinetButton
-                              key={d}
-                              size="sm"
-                              selected={m.difficulty === d}
-                              onClick={() => room.send({ type: "setDifficulty", difficulty: d })}
-                            >
-                              {d}
-                            </CabinetButton>
-                          ))}
+                      <div className="mt-3 flex flex-col gap-3">
+                        <div className={"flex flex-col gap-1 " + (m.director ? "hidden" : "")}>
+                          <span className="text-[9px] uppercase tracking-widest text-cabinet-text/40">
+                            difficulty
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {DIFFICULTIES.map((d) => (
+                              <CabinetButton
+                                key={d}
+                                size="sm"
+                                selected={m.difficulty === d}
+                                onClick={() => room.send({ type: "setDifficulty", difficulty: d })}
+                              >
+                                {d}
+                              </CabinetButton>
+                            ))}
+                          </div>
+                        </div>
+                        {/* your words for the show — everyone picks their own */}
+                        <div className={"flex flex-col gap-1 " + (m.director ? "hidden" : "")}>
+                          <span className="text-[9px] uppercase tracking-widest text-cabinet-text/40">
+                            passage
+                          </span>
+                          <div className="flex max-h-40 flex-wrap gap-1 overflow-y-auto">
+                            {PASSAGES.map((p) => (
+                              <CabinetButton
+                                key={p.id}
+                                size="sm"
+                                selected={passageFor(m).id === p.id}
+                                title={`${p.lengthChars} chars · ${p.source}`}
+                                onClick={() => room.send({ type: "pickPassage", passageId: p.id })}
+                              >
+                                {p.title}
+                              </CabinetButton>
+                            ))}
+                          </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <CabinetButton
@@ -300,8 +336,8 @@ export function MultiSetup({ room }: { room: Room }) {
                       </div>
                     ) : (
                       <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-text/40">
-                        {m.director ? "running the show" : m.difficulty} ·{" "}
-                        {m.audioOutput ? "🔊 audio" : "muted"}
+                        {m.director ? "running the show" : `${m.difficulty} · ${passageFor(m).title}`}{" "}
+                        · {m.audioOutput ? "🔊 audio" : "muted"}
                       </div>
                     )}
                   </div>
