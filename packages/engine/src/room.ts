@@ -6,11 +6,17 @@ export type Mode = "single" | "multi";
 
 export type RoomPhase = "lobby" | "setup" | "countdown" | "playing" | "results";
 
+/** Whether lanes type whole words on a WPM pace, or single letters on the song's rhythm. */
+export type NoteMode = "words" | "rhythm";
+
 export type Member = {
   id: string;
   name: string;
   character: Character | null;
   connected: boolean;
+  /** A director runs the show — the song, the note style, the sound — but takes
+   *  no lane and never walks out onto the riser. */
+  director: boolean;
   audioOutput: boolean;
   instrument: InstrumentLane | null;
   passageId: string | null;
@@ -32,10 +38,11 @@ export type RoomState = {
   songDurationMs: number | null;
   startProposal: StartProposal | null;
   startedAtEpochMs: number | null;
+  noteMode: NoteMode;
 };
 
 export type RoomAction =
-  | { t: "join"; id: string; name: string; character?: Character }
+  | { t: "join"; id: string; name: string; character?: Character; director?: boolean }
   | { t: "leave"; id: string }
   | { t: "lockIn"; id: string }
   | { t: "backToLobby"; id: string }
@@ -48,11 +55,13 @@ export type RoomAction =
   | { t: "voteSong"; id: string; songId: string }
   | { t: "ready"; id: string; ready: boolean }
   | { t: "setAudioOutput"; id: string; on: boolean }
+  | { t: "setDirector"; id: string; on: boolean }
   | { t: "proposeSong"; id: string; songId: string; durationMs: number }
   | { t: "confirmSong"; id: string }
   | { t: "proposeStart"; id: string }
   | { t: "confirmStart"; id: string }
   | { t: "setMode"; id: string; mode: "shared" | "distributed" }
+  | { t: "setNoteMode"; id: string; noteMode: NoteMode }
   | { t: "assignAudio"; id: string; playerId: string; on: boolean }
   | { t: "nextSong"; id: string }
   | { t: "songStarted" }
@@ -70,6 +79,7 @@ export function initialRoom(): RoomState {
     songDurationMs: null,
     startProposal: null,
     startedAtEpochMs: null,
+    noteMode: "words",
   };
 }
 
@@ -85,8 +95,26 @@ function mapMember(state: RoomState, id: string, fn: (m: Member) => Member): Roo
   return { ...state, members: state.members.map((m) => (m.id === id ? fn(m) : m)) };
 }
 
+/** Everyone who actually plays: the roster minus the directors. */
+export function bandMembers(members: Member[]): Member[] {
+  return members.filter((m) => !m.director);
+}
+
+// Stepping behind the desk drops your instrument: the lane is freed for someone
+// else, there is nothing left to ready up, and the desk gets the sound.
+function setRole(m: Member, director: boolean): Member {
+  if (m.director === director) return m;
+  return {
+    ...m,
+    director,
+    instrument: director ? null : m.instrument,
+    ready: director ? false : m.ready,
+    audioOutput: director ? true : m.audioOutput,
+  };
+}
+
 function allReady(state: RoomState): boolean {
-  const active = state.members.filter((m) => m.connected);
+  const active = bandMembers(state.members).filter((m) => m.connected);
   return active.length > 0 && active.every((m) => m.ready && m.instrument !== null);
 }
 
@@ -94,13 +122,23 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
   switch (action.t) {
     case "join": {
       const existing = member(state, action.id);
-      if (existing) return mapMember(state, action.id, (m) => ({ ...m, connected: true }));
+      // A reconnect keeps whatever role you had, unless this join asked for a
+      // different one — reopening the room as a director should switch you.
+      if (existing) {
+        return mapMember(state, action.id, (m) => {
+          const back = { ...m, connected: true };
+          return action.director === undefined ? back : setRole(back, action.director);
+        });
+      }
+      const director = action.director ?? false;
       const m: Member = {
         id: action.id,
         name: action.name,
         character: action.character ?? null,
         connected: true,
-        audioOutput: false,
+        director,
+        // A director is usually the machine wired to the PA, so it starts on.
+        audioOutput: director,
         instrument: null,
         passageId: null,
         difficulty: "medium",
@@ -163,6 +201,7 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
 
     case "pickInstrument": {
       if (state.songId === null) return state;
+      if (member(state, action.id)?.director) return state;
       const taken = state.members.some(
         (m) => m.id !== action.id && m.connected && m.instrument === action.instrument,
       );
@@ -188,12 +227,19 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
 
     case "ready": {
       const m = member(state, action.id);
-      if (!m || m.instrument === null) return state;
+      if (!m || m.director || m.instrument === null) return state;
       return mapMember(state, action.id, (x) => ({ ...x, ready: action.ready }));
     }
 
     case "setAudioOutput":
       return mapMember(state, action.id, (m) => ({ ...m, audioOutput: action.on }));
+
+    // Stepping behind the desk drops your instrument: the lane is freed for
+    // someone else, and there is nothing left to ready up.
+    case "setDirector": {
+      if (state.phase !== "lobby" && state.phase !== "setup") return state;
+      return mapMember(state, action.id, (m) => setRole(m, action.on));
+    }
 
     case "proposeSong": {
       const proposal: SongProposal = {
@@ -226,13 +272,24 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
       return { ...state, phase: "countdown" };
     }
 
+    case "setNoteMode": {
+      if (!isHost(state, action.id)) return state;
+      if (state.phase !== "lobby" && state.phase !== "setup") return state;
+      return { ...state, noteMode: action.noteMode };
+    }
+
     case "setMode": {
       if (!isHost(state, action.id)) return state;
-      const members = state.members.map((m, i) => ({
-        ...m,
-        audioOutput: action.mode === "distributed" ? true : i === 0,
-      }));
-      return { ...state, members };
+      if (action.mode === "distributed") {
+        return { ...state, members: state.members.map((m) => ({ ...m, audioOutput: true })) };
+      }
+      // One machine carries the room: the director if there is one, since they
+      // are already running the desk, otherwise whoever got here first.
+      const speaker = state.members.find((m) => m.director) ?? state.members[0];
+      return {
+        ...state,
+        members: state.members.map((m) => ({ ...m, audioOutput: m.id === speaker?.id })),
+      };
     }
 
     case "assignAudio": {
@@ -250,7 +307,12 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
         songDurationMs: null,
         startProposal: null,
         startedAtEpochMs: null,
-        members: state.members.map((m) => ({ ...m, ready: false })),
+        members: state.members.map((m) => ({
+          ...m,
+          ready: false,
+          songCursor: null,
+          songVote: null,
+        })),
       };
     }
 

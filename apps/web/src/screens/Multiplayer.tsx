@@ -1,8 +1,17 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { Character } from "@typohero/engine";
 import { useRoom } from "../net/useRoom";
 import { CabinetPage } from "../ui/CabinetPage";
+import { NameEntry } from "../ui/NameEntry";
+import {
+  CabinetButton,
+  CabinetField,
+  CabinetInput,
+  CabinetPanel,
+  CabinetStatus,
+  Divider,
+} from "../ui/cabinet";
 import { Lobby } from "./multi/Lobby";
 import { MultiSetup } from "./multi/MultiSetup";
 import { MultiPerformance } from "./multi/MultiPerformance";
@@ -19,10 +28,13 @@ export function BandEntry() {
   const navigate = useNavigate();
   const [name, setName] = useState(() => sessionStorage.getItem(NAME_KEY) ?? "");
   const [joinCode, setJoinCode] = useState("");
+  // A director opens the room and runs it from the desk — song, note style,
+  // sound — without taking a lane or a frog on the riser.
+  const [directing, setDirecting] = useState(false);
 
   function enter(code: string) {
     sessionStorage.setItem(NAME_KEY, name);
-    navigate(`/room/${code}`);
+    navigate(`/room/${code}${directing ? "?direct=1" : ""}`);
   }
 
   return (
@@ -34,129 +46,120 @@ export function BandEntry() {
         </>
       }
     >
-      <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
+      <CabinetPanel className="w-full max-w-md">
         <div className="flex flex-col gap-5">
-          <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-widest text-cabinet-accent">Your name</span>
-            <input
+          <CabinetField label="Your name">
+            <CabinetInput
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="frog sinatra"
-              className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-sm text-cabinet-text outline-none placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
             />
-          </label>
+          </CabinetField>
 
-          <button
-            disabled={!name}
-            onClick={() => enter(randomCode())}
-            className="w-full border-2 border-cabinet-accent bg-cabinet-accent px-5 py-5 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
-          >
-            Create Band
-          </button>
+          <CabinetField label="Your job">
+            <div className="flex gap-2">
+              <CabinetButton
+                full
+                selected={!directing}
+                onClick={() => setDirecting(false)}
+                className="whitespace-nowrap"
+              >
+                🎸 Play
+              </CabinetButton>
+              <CabinetButton
+                full
+                selected={directing}
+                onClick={() => setDirecting(true)}
+                className="whitespace-nowrap"
+              >
+                🎛 Direct
+              </CabinetButton>
+            </div>
+            <div className="mt-2 text-[10px] uppercase tracking-widest text-cabinet-text/40">
+              {directing
+                ? "run the song, the note style and the sound — no frog on stage"
+                : "pick up an instrument and play the show"}
+            </div>
+          </CabinetField>
 
-          <div className="flex items-center gap-3 text-xs uppercase tracking-widest text-cabinet-text/40">
-            <div className="h-0.5 flex-1 bg-cabinet-frame" />
-            or join
-            <div className="h-0.5 flex-1 bg-cabinet-frame" />
-          </div>
+          <CabinetButton variant="primary" full disabled={!name} onClick={() => enter(randomCode())}>
+            {directing ? "Create Band as Director" : "Create Band"}
+          </CabinetButton>
+
+          <Divider label="or join" />
 
           <div className="flex gap-3">
-            <input
+            <CabinetInput
+              code
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               placeholder="code"
               maxLength={4}
-              className="w-full border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-xl uppercase tracking-[0.4em] text-cabinet-text outline-none placeholder:tracking-widest placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
+              className="w-full"
             />
-            <button
+            <CabinetButton
               disabled={!name || !joinCode}
               onClick={() => enter(joinCode)}
-              className="whitespace-nowrap border-2 border-cabinet-border bg-cabinet-btn px-5 text-sm uppercase tracking-widest text-cabinet-text transition-colors hover:border-cabinet-accent disabled:cursor-not-allowed disabled:text-cabinet-text/30 disabled:hover:border-cabinet-border md:text-base"
+              className="whitespace-nowrap"
             >
               Join
-            </button>
+            </CabinetButton>
           </div>
         </div>
-      </div>
+      </CabinetPanel>
 
-      <button
-        className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
-        onClick={() => navigate("/")}
-      >
+      <CabinetButton variant="ghost" onClick={() => navigate("/")}>
         ← Back
-      </button>
+      </CabinetButton>
     </CabinetPage>
   );
 }
 
 export function Room() {
   const { code } = useParams<{ code: string }>();
+  const [params] = useSearchParams();
   const navigate = useNavigate();
   const roomId = (code ?? "").toUpperCase();
+  const directing = params.get("direct") === "1";
   const [name, setName] = useState(() => sessionStorage.getItem(NAME_KEY) ?? "");
-  const [draft, setDraft] = useState("");
 
   if (!name) {
     return (
-      <CabinetPage
-        subtitle={`joining band ${roomId}`}
-        title={
-          <>
-            WHO ARE <span className="text-cabinet-accent">YOU?</span>
-          </>
-        }
-      >
-        <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
-          <div className="flex flex-col gap-5">
-            <label className="flex flex-col gap-2">
-              <span className="text-xs uppercase tracking-widest text-cabinet-accent">Your name</span>
-              <input
-                autoFocus
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="frog sinatra"
-                className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-sm text-cabinet-text outline-none placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
-              />
-            </label>
-            <button
-              disabled={!draft}
-              onClick={() => {
-                sessionStorage.setItem(NAME_KEY, draft);
-                setName(draft);
-              }}
-              className="w-full border-2 border-cabinet-accent bg-cabinet-accent px-5 py-5 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
-            >
-              Join {roomId} →
-            </button>
-          </div>
-        </div>
-        <button
-          className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
-          onClick={() => navigate("/")}
-        >
-          ← Back
-        </button>
-      </CabinetPage>
+      <NameEntry
+        subtitle={directing ? `directing band ${roomId}` : `joining band ${roomId}`}
+        cta={directing ? `Direct ${roomId} →` : `Join ${roomId} →`}
+        onBack={() => navigate("/")}
+        onSubmit={(next) => {
+          sessionStorage.setItem(NAME_KEY, next);
+          setName(next);
+        }}
+      />
     );
   }
 
-  return <RoomView roomId={roomId} name={name} />;
+  return <RoomView roomId={roomId} name={name} directing={directing} />;
 }
 
-function RoomView({ roomId, name }: { roomId: string; name: string }) {
+function RoomView({ roomId, name, directing }: { roomId: string; name: string; directing: boolean }) {
   const character = useMemo<Character | undefined>(() => {
     const id = sessionStorage.getItem(CHAR_KEY);
     return id ? { faceId: id, outfitId: "default", instrumentSkinId: "default" } : undefined;
   }, []);
-  const room = useRoom(roomId, name, false, character);
+  const room = useRoom(roomId, name, false, character, undefined, false, directing);
+
+  // `?direct=1` is only read on the way in, so keep it honest after a role
+  // switch in the lobby — otherwise a refresh would put you back at the desk.
+  // Rewritten outside the router on purpose: this must not remount the socket.
+  const role = room.snapshot?.members.find((m) => m.id === room.playerId)?.director;
+  useEffect(() => {
+    if (role === undefined) return;
+    const want = `/room/${roomId}${role ? "?direct=1" : ""}`;
+    if (location.pathname + location.search !== want) history.replaceState(null, "", want);
+  }, [role, roomId]);
 
   if (!room.snapshot) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
-        connecting to {roomId}…
-      </div>
-    );
+    return <CabinetStatus>connecting to {roomId}…</CabinetStatus>;
   }
 
   if (room.snapshot.phase === "lobby") {

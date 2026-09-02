@@ -8,13 +8,25 @@ import {
   type RoomAction,
   type LiveStat,
 } from "@typohero/engine";
-import type { ClientMsg, ServerMsg, CrowdItem } from "@typohero/protocol";
+import {
+  REACTION_KINDS,
+  type ClientMsg,
+  type ServerMsg,
+  type CrowdMember,
+  type WornShirt,
+} from "@typohero/protocol";
 
 const FRAME_MS = 50;
+// A wire-sized print is a few KB; anything near this is not one of ours.
+const MAX_ART_CHARS = 48_000;
+// A reaction fans out to every socket in the room, so one guest leaning on the
+// button can't be allowed to drive the broadcast rate. Roughly six a second is
+// faster than anyone clicks and cheap enough to relay.
+const REACT_MIN_MS = 160;
 
 type Env = Record<string, never>;
-type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string };
-type CrowdEntry = { name: string; x: number; y: number; facing: number; item?: CrowdItem };
+type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string; lastReactMs?: number };
+type CrowdEntry = Omit<CrowdMember, "id">;
 
 export class GameRoom extends DurableObject<Env> {
   private room: RoomState = initialRoom();
@@ -22,8 +34,12 @@ export class GameRoom extends DurableObject<Env> {
   private stats = new Map<string, LiveStat>();
   private positions = new Map<string, { x: number; y: number; facing: number }>();
   private crowd = new Map<string, CrowdEntry>();
+  // Kept apart from `crowd` on purpose: that map is rebroadcast on every
+  // movement tick, and shirts are far too fat to ride along.
+  private wardrobe = new Map<string, WornShirt>();
   private tokens = new Map<string, string>();
   private frameTimer: ReturnType<typeof setInterval> | null = null;
+  private reactionSeq = 0;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -74,6 +90,34 @@ export class GameRoom extends DurableObject<Env> {
     this.broadcast({ type: "crowd", members });
   }
 
+  /** Spectators can only vote while the band hasn't locked a song in yet. */
+  private setlistOpen(): boolean {
+    return (
+      this.room.songId === null && (this.room.phase === "lobby" || this.room.phase === "setup")
+    );
+  }
+
+  private clearCrowdVotes(): void {
+    let changed = false;
+    for (const e of this.crowd.values()) {
+      if (e.vote !== undefined) {
+        e.vote = undefined;
+        changed = true;
+      }
+    }
+    if (changed) this.broadcastCrowd();
+  }
+
+  private wardrobeObject(): Record<string, WornShirt> {
+    const shirts: Record<string, WornShirt> = {};
+    for (const [id, s] of this.wardrobe) shirts[id] = s;
+    return shirts;
+  }
+
+  private broadcastWardrobe(): void {
+    this.broadcast({ type: "wardrobe", shirts: this.wardrobeObject() });
+  }
+
   private positionsObject(): Record<string, { x: number; y: number; facing: number }> {
     const players: Record<string, { x: number; y: number; facing: number }> = {};
     for (const [id, p] of this.positions) players[id] = p;
@@ -112,6 +156,7 @@ export class GameRoom extends DurableObject<Env> {
     if (msg.type === "spectate") {
       this.send(conn.ws, { type: "session", snapshot: this.room });
       this.send(conn.ws, { type: "positions", players: this.positionsObject() });
+      this.send(conn.ws, { type: "wardrobe", shirts: this.wardrobeObject() });
       if (msg.observer) {
         this.broadcastCrowd();
         return;
@@ -120,6 +165,16 @@ export class GameRoom extends DurableObject<Env> {
       conn.crowdId = id;
       this.crowd.set(id, { name: msg.name?.trim() || "someone", x: 30, y: 0, facing: 1 });
       this.broadcastCrowd();
+      return;
+    }
+
+    if (msg.type === "wear") {
+      if (!conn.crowdId) return;
+      const shirt = msg.shirt;
+      if (shirt && (typeof shirt.art !== "string" || shirt.art.length > MAX_ART_CHARS)) return;
+      if (shirt) this.wardrobe.set(conn.crowdId, shirt);
+      else this.wardrobe.delete(conn.crowdId);
+      this.broadcastWardrobe();
       return;
     }
 
@@ -141,6 +196,17 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
+    // Spectators get a say in the setlist. Their vote lives on the crowd entry
+    // (not the roster) so it disappears with them when they leave the pit.
+    if (msg.type === "voteSong" && conn.crowdId) {
+      const e = this.crowd.get(conn.crowdId);
+      if (e && this.setlistOpen()) {
+        e.vote = msg.songId;
+        this.broadcastCrowd();
+      }
+      return;
+    }
+
     if (msg.type === "equip") {
       if (conn.crowdId) {
         const e = this.crowd.get(conn.crowdId);
@@ -149,6 +215,11 @@ export class GameRoom extends DurableObject<Env> {
           this.broadcastCrowd();
         }
       }
+      return;
+    }
+
+    if (msg.type === "react") {
+      this.handleReact(conn, msg);
       return;
     }
 
@@ -167,8 +238,37 @@ export class GameRoom extends DurableObject<Env> {
       this.beginCountdown();
     }
 
+    // Back in the lobby the setlist reopens, so last show's crowd votes go with
+    // it — the reducer clears the band's the same way.
+    if (this.room.phase === "lobby" && before !== "lobby") {
+      this.clearCrowdVotes();
+    }
+
     await this.persist();
     this.broadcastSession();
+  }
+
+  // A reaction is pure relay: no room state to reduce, nothing to persist, so it
+  // skips the reducer path below and goes straight back out.
+  private handleReact(conn: Conn, msg: Extract<ClientMsg, { type: "react" }>): void {
+    if (!REACTION_KINDS.includes(msg.kind)) return;
+
+    // Where the sender is standing — the pit for a spectator, the riser for a
+    // band member, centre stage for a player who hasn't walked anywhere yet.
+    // Anyone without a frog of their own (the big screen) has nowhere to throw
+    // from and is ignored.
+    const at = conn.crowdId
+      ? this.crowd.get(conn.crowdId)
+      : conn.playerId
+        ? this.positions.get(conn.playerId) ?? { x: 50 }
+        : undefined;
+    if (!at) return;
+
+    const now = Date.now();
+    if (now - (conn.lastReactMs ?? 0) < REACT_MIN_MS) return;
+    conn.lastReactMs = now;
+
+    this.broadcast({ type: "reaction", id: `r${++this.reactionSeq}`, kind: msg.kind, x: at.x });
   }
 
   private handleJoin(conn: Conn, msg: Extract<ClientMsg, { type: "join" }>): void {
@@ -180,7 +280,13 @@ export class GameRoom extends DurableObject<Env> {
       this.tokens.set(token, playerId);
     }
     conn.playerId = playerId;
-    this.apply({ t: "join", id: playerId, name: msg.name, character: msg.character });
+    this.apply({
+      t: "join",
+      id: playerId,
+      name: msg.name,
+      character: msg.character,
+      director: msg.director,
+    });
     this.send(conn.ws, {
       type: "welcome",
       playerId,
@@ -214,6 +320,8 @@ export class GameRoom extends DurableObject<Env> {
         return { t: "ready", id, ready: msg.ready };
       case "setAudioOutput":
         return { t: "setAudioOutput", id, on: msg.on };
+      case "setDirector":
+        return { t: "setDirector", id, on: msg.on };
       case "proposeSong":
         return { t: "proposeSong", id, songId: msg.songId, durationMs: msg.durationMs };
       case "confirmSong":
@@ -222,6 +330,8 @@ export class GameRoom extends DurableObject<Env> {
         return { t: "proposeStart", id };
       case "confirmStart":
         return { t: "confirmStart", id };
+      case "setNoteMode":
+        return { t: "setNoteMode", id, noteMode: msg.noteMode };
       case "setMode":
         return { t: "setMode", id, mode: msg.mode };
       case "assignAudio":
@@ -287,7 +397,9 @@ export class GameRoom extends DurableObject<Env> {
     }
     if (conn.crowdId) {
       this.crowd.delete(conn.crowdId);
+      this.wardrobe.delete(conn.crowdId);
       this.broadcastCrowd();
+      this.broadcastWardrobe();
     }
   }
 }

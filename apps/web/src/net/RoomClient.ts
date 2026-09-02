@@ -1,4 +1,4 @@
-import type { ClientMsg, ServerMsg, CrowdItem } from "@typohero/protocol";
+import type { ClientMsg, ServerMsg, CrowdMember, WornShirt, ReactionKind } from "@typohero/protocol";
 import type { RoomState, LiveStat, Character } from "@typohero/engine";
 
 function wsBase(): string {
@@ -12,8 +12,10 @@ export type RoomEvents = {
   onFrame?: (stats: Record<string, LiveStat>, atMs: number) => void;
   onCountdown?: (startAtEpochMs: number) => void;
   onResults?: (final: Record<string, LiveStat>) => void;
-  onCrowd?: (members: { id: string; name: string; x: number; y: number; facing: number; item?: CrowdItem }[]) => void;
+  onCrowd?: (members: CrowdMember[]) => void;
   onPositions?: (players: Record<string, { x: number; y: number; facing: number }>) => void;
+  onWardrobe?: (shirts: Record<string, WornShirt>) => void;
+  onReaction?: (reaction: { id: string; kind: ReactionKind; x: number }) => void;
   onWelcome?: (playerId: string) => void;
   onOpen?: () => void;
   onClose?: () => void;
@@ -31,6 +33,8 @@ export class RoomClient {
     private character?: Character,
     private spectatorId?: string,
     private observer = false,
+    /** Join to run the show rather than to play: no lane, no frog on the riser. */
+    private director = false,
   ) {}
 
   connect(): void {
@@ -41,7 +45,13 @@ export class RoomClient {
         this.send({ type: "spectate", name: this.name, id: this.spectatorId, observer: this.observer });
       } else {
         const reconnectToken = localStorage.getItem(this.tokenKey()) ?? undefined;
-        this.send({ type: "join", name: this.name, character: this.character, reconnectToken });
+        this.send({
+          type: "join",
+          name: this.name,
+          character: this.character,
+          reconnectToken,
+          director: this.director,
+        });
       }
       this.events.onOpen?.();
     });
@@ -78,6 +88,12 @@ export class RoomClient {
         break;
       case "positions":
         this.events.onPositions?.(msg.players);
+        break;
+      case "wardrobe":
+        this.events.onWardrobe?.(msg.shirts);
+        break;
+      case "reaction":
+        this.events.onReaction?.({ id: msg.id, kind: msg.kind, x: msg.x });
         break;
     }
   }

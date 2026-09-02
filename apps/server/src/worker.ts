@@ -6,25 +6,9 @@ interface Env {
   GAME_ROOM: DurableObjectNamespace<GameRoom>;
   SONGS: R2Bucket;
   ASSETS: Fetcher;
-  GATE_SECRET: string;
   UPLOAD_TOKEN: string;
   /** Premium frog codes: "frogId:CODE,frogId:CODE". Unset = no frogs unlockable. */
   UNLOCK_CODES: string;
-}
-
-const SESSION_COOKIE = "th-session";
-const SESSION_PAYLOAD = "ok";
-
-async function hmac(secret: string, msg: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
-  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -32,15 +16,6 @@ function safeEqual(a: string, b: string): boolean {
   let out = 0;
   for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return out === 0;
-}
-
-async function hasSession(request: Request, env: Env): Promise<boolean> {
-  const cookie = request.headers.get("Cookie") ?? "";
-  const match = cookie.match(new RegExp(`${SESSION_COOKIE}=([^;]+)`));
-  if (!match) return false;
-  const [payload, mac] = decodeURIComponent(match[1]!).split(".");
-  if (payload !== SESSION_PAYLOAD || !mac) return false;
-  return safeEqual(mac, await hmac(env.GATE_SECRET, payload));
 }
 
 /** Resolve a redemption code to the frog id it unlocks, or null. */
@@ -70,28 +45,7 @@ export default {
     const ws = path.match(/^\/room\/([^/]+)\/ws$/);
     if (ws) return env.GAME_ROOM.getByName(ws[1]!).fetch(request);
 
-    if (path === "/api/gate" && request.method === "GET") {
-      const ok = await hasSession(request, env);
-      return json({ ok }, ok ? 200 : 401);
-    }
-
-    if (path === "/api/gate" && request.method === "POST") {
-      const { password } = (await request.json().catch(() => ({}))) as { password?: string };
-      if (!password || !safeEqual(password, env.GATE_SECRET)) {
-        return json({ ok: false }, 401);
-      }
-      const mac = await hmac(env.GATE_SECRET, SESSION_PAYLOAD);
-      const value = encodeURIComponent(`${SESSION_PAYLOAD}.${mac}`);
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: {
-          "Content-Type": "application/json",
-          "Set-Cookie": `${SESSION_COOKIE}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`,
-        },
-      });
-    }
-
     if (path === "/api/unlock" && request.method === "POST") {
-      if (!(await hasSession(request, env))) return json({ ok: false }, 401);
       const { code } = (await request.json().catch(() => ({}))) as { code?: string };
       const frogId = code ? frogForCode(env.UNLOCK_CODES ?? "", code.trim()) : null;
       if (!frogId) return json({ ok: false }, 403);
@@ -132,7 +86,6 @@ export default {
     }
 
     if (path === "/api/songs" && request.method === "GET") {
-      if (!(await hasSession(request, env))) return json({ ok: false }, 401);
       const listed = await env.SONGS.list({ prefix: "songs/" });
       const manifests = listed.objects.filter((o) => o.key.endsWith("/song.json"));
       const songs = await Promise.all(
@@ -146,7 +99,6 @@ export default {
 
     const stem = path.match(/^\/songs\/([^/]+)\/([^/]+)$/);
     if (stem && request.method === "GET") {
-      if (!(await hasSession(request, env))) return json({ ok: false }, 401);
       const obj = await env.SONGS.get(`songs/${stem[1]}/${stem[2]}`);
       if (obj) {
         const headers = new Headers();

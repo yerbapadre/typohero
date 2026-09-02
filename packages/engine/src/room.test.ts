@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { initialRoom, roomReducer, countdownToPlaying, type RoomState } from "./room";
+import { bandMembers, initialRoom, roomReducer, countdownToPlaying, type RoomState } from "./room";
 
 function run(state: RoomState, ...actions: Parameters<typeof roomReducer>[1][]): RoomState {
   return actions.reduce(roomReducer, state);
@@ -140,6 +140,93 @@ describe("start propose/confirm & gating", () => {
   });
 });
 
+describe("directors", () => {
+  // A director opens the room, runs the show and never appears on stage.
+  function deskAndBand(): RoomState {
+    return run(
+      initialRoom(),
+      { t: "join", id: "d", name: "d", director: true },
+      { t: "join", id: "a", name: "a" },
+      { t: "proposeSong", id: "d", songId: "chocolate", durationMs: 224000 },
+    );
+  }
+
+  it("a director joins off the roster and holds the sound", () => {
+    const s = deskAndBand();
+    expect(s.hostId).toBe("d");
+    expect(bandMembers(s.members).map((m) => m.id)).toEqual(["a"]);
+    expect(s.members[0]!.audioOutput).toBe(true);
+  });
+
+  it("a director takes no instrument and never readies", () => {
+    let s = run(deskAndBand(), { t: "pickInstrument", id: "d", instrument: "vocals" });
+    expect(s.members[0]!.instrument).toBeNull();
+    s = run(s, { t: "ready", id: "d", ready: true });
+    expect(s.members[0]!.ready).toBe(false);
+  });
+
+  it("the show starts once the band is ready, desk excluded", () => {
+    let s = run(
+      deskAndBand(),
+      { t: "pickInstrument", id: "a", instrument: "vocals" },
+      { t: "ready", id: "a", ready: true },
+    );
+    s = run(s, { t: "proposeStart", id: "d" });
+    expect(s.phase).toBe("countdown");
+  });
+
+  it("a room of only directors can never start", () => {
+    let s = run(initialRoom(), { t: "join", id: "d", name: "d", director: true });
+    s = run(s, { t: "proposeSong", id: "d", songId: "chocolate", durationMs: 224000 });
+    s = run(s, { t: "proposeStart", id: "d" });
+    expect(s.phase).toBe("lobby");
+  });
+
+  it("stepping behind the desk frees the lane and drops ready", () => {
+    let s = run(
+      lobbyWith("a", "b"),
+      { t: "proposeSong", id: "a", songId: "chocolate", durationMs: 224000 },
+      { t: "pickInstrument", id: "a", instrument: "vocals" },
+      { t: "ready", id: "a", ready: true },
+      { t: "setDirector", id: "a", on: true },
+    );
+    expect(s.members[0]!.instrument).toBeNull();
+    expect(s.members[0]!.ready).toBe(false);
+    // and the vocals lane is free for someone else
+    s = run(s, { t: "pickInstrument", id: "b", instrument: "vocals" });
+    expect(s.members[1]!.instrument).toBe("vocals");
+  });
+
+  it("a director cannot change roles mid-show", () => {
+    let s = run(
+      deskAndBand(),
+      { t: "pickInstrument", id: "a", instrument: "vocals" },
+      { t: "ready", id: "a", ready: true },
+      { t: "proposeStart", id: "d" },
+    );
+    expect(s.phase).toBe("countdown");
+    s = run(s, { t: "setDirector", id: "d", on: false });
+    expect(s.members[0]!.director).toBe(true);
+  });
+
+  it("a reconnect keeps the role, and can switch it", () => {
+    let s = run(deskAndBand(), { t: "leave", id: "d" }, { t: "join", id: "d", name: "d" });
+    expect(s.members[0]!.director).toBe(true);
+    s = run(s, { t: "join", id: "d", name: "d", director: false });
+    expect(s.members[0]!.director).toBe(false);
+  });
+
+  it("shared audio lands on the director, not the first joiner", () => {
+    let s = run(
+      initialRoom(),
+      { t: "join", id: "a", name: "a" },
+      { t: "join", id: "d", name: "d", director: true },
+    );
+    s = run(s, { t: "setMode", id: "a", mode: "shared" });
+    expect(s.members.map((m) => m.audioOutput)).toEqual([false, true]);
+  });
+});
+
 describe("audio output modes", () => {
   it("distributed turns everyone on; shared turns only the first on", () => {
     let s = lobbyWith("a", "b", "c");
@@ -239,6 +326,20 @@ describe("song cursor & votes", () => {
     expect(s.members[0]!.songVote).toBe("waterloo");
   });
 
+  it("nextSong clears cursors and votes for the next round", () => {
+    let s = run(
+      lobbyWith("a"),
+      { t: "lockIn", id: "a" },
+      { t: "setSongCursor", id: "a", songId: "chocolate" },
+      { t: "voteSong", id: "a", songId: "chocolate" },
+      { t: "endPerformance" },
+      { t: "nextSong", id: "a" },
+    );
+    expect(s.phase).toBe("lobby");
+    expect(s.members[0]!.songCursor).toBeNull();
+    expect(s.members[0]!.songVote).toBeNull();
+  });
+
   it("backToLobby clears cursors and votes", () => {
     let s = run(
       lobbyWith("a"),
@@ -283,5 +384,36 @@ describe("per-member audio output", () => {
     s = run(s, { t: "setAudioOutput", id: "b", on: true });
     expect(s.members[1]!.audioOutput).toBe(true);
     expect(s.members[0]!.audioOutput).toBe(false);
+  });
+});
+
+describe("note mode", () => {
+  it("starts on words so nothing changes until it is turned on", () => {
+    expect(initialRoom().noteMode).toBe("words");
+  });
+
+  it("lets the host switch modes in the lobby", () => {
+    const s = run(lobbyWith("a", "b"), { t: "setNoteMode", id: "a", noteMode: "rhythm" });
+    expect(s.noteMode).toBe("rhythm");
+  });
+
+  it("ignores anyone who is not the host", () => {
+    const s = run(lobbyWith("a", "b"), { t: "setNoteMode", id: "b", noteMode: "rhythm" });
+    expect(s.noteMode).toBe("words");
+  });
+
+  it("cannot be switched mid-performance", () => {
+    const playing = { ...lobbyWith("a"), phase: "playing" as const };
+    const s = run(playing, { t: "setNoteMode", id: "a", noteMode: "rhythm" });
+    expect(s.noteMode).toBe("words");
+  });
+
+  it("survives lock-in so the setting reaches the stage", () => {
+    const s = run(
+      lobbyWith("a"),
+      { t: "setNoteMode", id: "a", noteMode: "rhythm" },
+      { t: "lockIn", id: "a" },
+    );
+    expect(s.noteMode).toBe("rhythm");
   });
 });

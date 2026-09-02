@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { redeemCode } from "../game/unlocks";
 import type { Frog } from "../characters";
+import { CabinetButton } from "./cabinet";
 
 /** Code-entry row for a locked premium frog. Shared by the solo picker and the lobby. */
 export function UnlockForm({
@@ -47,13 +48,9 @@ export function UnlockForm({
           spellCheck={false}
           className="min-w-0 flex-1 border-2 border-cabinet-border bg-black/30 px-3 py-2 font-mono text-xs uppercase tracking-widest text-cabinet-text outline-none placeholder:text-cabinet-text/25 focus:border-cabinet-accent"
         />
-        <button
-          type="submit"
-          disabled={busy || !code.trim()}
-          className="border-2 border-cabinet-accent bg-cabinet-accent px-4 py-2 text-xs uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30"
-        >
+        <CabinetButton type="submit" variant="primary" size="sm" disabled={busy || !code.trim()}>
           {busy ? "…" : "Unlock"}
-        </button>
+        </CabinetButton>
       </div>
       {error && <div className="font-mono text-[11px] normal-case text-red-400">{error}</div>}
     </form>

@@ -1,14 +1,25 @@
 import type { ReactNode } from "react";
-import { bandQuality, centerOn, type RoomState, type LiveStat, type Song } from "@typohero/engine";
-import type { CrowdItem } from "@typohero/protocol";
-import type { CrowdMember, Position } from "../../net/useRoom";
+import {
+  bandQuality,
+  centerOn,
+  type RoomState,
+  type LiveStat,
+  type Song,
+  type ChartFile,
+  type RhythmRun,
+} from "@typohero/engine";
+import type { CrowdItem, ReactionKind } from "@typohero/protocol";
+import type { CrowdMember, Position, Reaction } from "../../net/useRoom";
+import type { WornShirt } from "@typohero/protocol";
 import { StageCanvas } from "../../render/StageCanvas";
 import { TRAVEL_MS } from "../../render/stage/scene";
 import { homeXPercent, RISER_ZONE } from "../../render/stage/performers";
 import { useStageScene, type LocalLane } from "../../game/useStageScene";
 import { useStageWalk } from "../../game/useStageWalk";
 import { useCountIn } from "../../game/useCountIn";
+import { CountIn } from "../../ui/cabinet";
 import { CrowdFloor } from "./CrowdFloor";
+import { ReactionBar, ReactionLayer } from "./Reactions";
 
 // The shared stage: the same lane highway on every machine, the band's frogs
 // on the riser behind it, the crowd pit along the front. A band member gets
@@ -21,14 +32,19 @@ export function StageView({
   frame,
   song,
   youId,
+  chart,
   local,
+  rhythmRun,
   positions,
   onBandMove,
   crowd,
+  wardrobe,
   crowdYouId,
   crowdYouName,
   onMove,
   onEquip,
+  reactions = [],
+  onReact,
   controllableCrowd,
   footer,
 }: {
@@ -37,15 +53,21 @@ export function StageView({
   frame: Record<string, LiveStat>;
   song: Song | null;
   youId: string | null;
+  chart?: ChartFile | null;
   local?: LocalLane | null;
+  rhythmRun?: RhythmRun | null;
   positions: Record<string, Position>;
   // Only a band member gets this — it steers their frog on the riser.
   onBandMove?: (x: number, y: number, facing: -1 | 1) => void;
   crowd: CrowdMember[];
+  wardrobe?: Record<string, WornShirt>;
   crowdYouId?: string | null;
   crowdYouName?: string;
   onMove?: (x: number, y: number, facing: -1 | 1) => void;
   onEquip?: (item: CrowdItem | null) => void;
+  reactions?: Reaction[];
+  // Only someone with a frog in the room gets the bar; the big screen watches.
+  onReact?: (kind: ReactionKind) => void;
   controllableCrowd: boolean;
   footer?: ReactNode;
 }) {
@@ -70,6 +92,7 @@ export function StageView({
     song,
     youId,
     travelMs: TRAVEL_MS,
+    chart,
     local,
     positions,
     localWalk: getWalk,
@@ -80,7 +103,7 @@ export function StageView({
   const lanes = playing.length;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-cabinet-bg font-pixel text-cabinet-text">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-cabinet-bg font-pixel text-cabinet-text">
       <header className="flex shrink-0 items-center justify-between gap-4 border-b-[3px] border-cabinet-frame bg-black/25 px-4 py-2">
         <div className="min-w-0">
           <div className="text-[9px] uppercase tracking-[0.3em] text-cabinet-text/40">
@@ -107,27 +130,25 @@ export function StageView({
 
         {waiting && (
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
-            <div className="border-[3px] border-cabinet-accent bg-cabinet-bg/90 px-10 py-6 text-center shadow-[8px_8px_0_var(--cab-shadow)]">
-              <div className="text-xs uppercase tracking-[0.4em] text-cabinet-text/50">
-                count in
-              </div>
-              <div className="mt-2 text-5xl tracking-widest text-cabinet-accent md:text-7xl">
-                {Math.ceil(remainingMs / 1000)}
-              </div>
-            </div>
+            <CountIn label="count in" value={Math.ceil(remainingMs / 1000)} />
           </div>
         )}
 
+        {rhythmRun && <JudgmentFlash run={rhythmRun} />}
+
         {youLane >= 0 && !!onBandMove && (
           <div className="pointer-events-none absolute bottom-2 right-3 text-[9px] uppercase tracking-widest text-cabinet-text/30">
-            ← → walk the stage · ↑ jump
+            ← → walk the stage · ↑ jump · ↑↑ double jump
           </div>
         )}
+
+        {onReact && <ReactionBar onReact={onReact} />}
       </div>
 
       <div className="h-[21vh] min-h-[150px] shrink-0">
         <CrowdFloor
           crowd={crowd}
+          wardrobe={wardrobe}
           youId={crowdYouId ?? null}
           youName={crowdYouName}
           controllable={controllableCrowd}
@@ -138,8 +159,51 @@ export function StageView({
       </div>
 
       {footer && <div className="shrink-0 border-t-2 border-cabinet-frame bg-black/30">{footer}</div>}
+
+      <ReactionLayer reactions={reactions} />
     </div>
   );
 }
 
 function noop() {}
+
+const JUDGMENT_LABEL: Record<string, string> = {
+  perfect: "PERFECT",
+  great: "GREAT",
+  good: "GOOD",
+};
+
+// The last note you hit, and whether you were ahead of or behind the beat. Keyed
+// on the note index so React replays the animation for every new hit.
+function JudgmentFlash({ run }: { run: RhythmRun }) {
+  const hit = run.lastHit;
+  if (!hit) return null;
+
+  const wrong = hit.typed !== hit.expected;
+  const label = wrong ? "WRONG" : JUDGMENT_LABEL[hit.judgment];
+  const drift = Math.round(hit.deltaMs);
+  const timing = hit.judgment === "perfect" ? "" : drift < 0 ? "early" : "late";
+
+  return (
+    <div
+      key={hit.index}
+      className="frog-in-right pointer-events-none absolute inset-x-0 top-6 grid place-items-center"
+    >
+      <div
+        className={
+          "border-2 px-4 py-1 text-center text-sm uppercase tracking-[0.3em] " +
+          (wrong
+            ? "border-red-500 bg-black/70 text-red-400"
+            : "border-cabinet-accent bg-black/70 text-cabinet-accent")
+        }
+      >
+        {label}
+        {timing && (
+          <span className="ml-2 text-[10px] tracking-widest text-cabinet-text/50">
+            {Math.abs(drift)}ms {timing}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

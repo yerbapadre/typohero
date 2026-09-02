@@ -21,6 +21,11 @@ Client routes: `/` mode select, `/solo/*` single-player flow, `/band` + `/room/:
 lobby and performance, `/crowd` + `/crowd/:code` spectators, `/stage` big-screen view. Everything
 sits behind a password gate (`apps/web/src/ui/Gate.tsx`).
 
+`/room/:code?direct=1` joins as a **director**: you take a seat on the roster and run the show —
+the song, the note style, the sound, the start — but take no instrument, no lane and no frog on
+the riser. Toggle it either way from the lobby. Directors are excluded from the ready check, the
+scoreboard and the band total, so a room of directors alone can never start a song.
+
 - **Audio plays only on the Stage machine** (wired to venue speakers) — no cross-device sync problem.
 - **Controllers** send keystroke/state events; the DO relays; the Stage renders the highway + reacts audio.
 - **Animation** (note highway, particles) is a canvas renderer on its own rAF loop, decoupled from React.
@@ -37,10 +42,9 @@ sits behind a password gate (`apps/web/src/ui/Gate.tsx`).
 ```
 pnpm install
 
-# 1. Local Worker secrets. The first two are required or the Worker won't boot;
+# 1. Local Worker secrets. UPLOAD_TOKEN is required or the Worker won't boot;
 #    UNLOCK_CODES is optional (unset just means no premium frog is unlockable).
 cat > apps/server/.dev.vars <<'EOF'
-GATE_SECRET=frogs
 UPLOAD_TOKEN=dev-upload-token
 UNLOCK_CODES=encore:SIDLIVES,headliner:STAIRWAY
 EOF
@@ -69,8 +73,6 @@ Develop against **5173** — Vite proxies `/api` and `/songs` to the Worker, and
 `ws://localhost:8799` directly for `/room/:code/ws`. Hitting 8799 directly serves the last
 `pnpm build` output, not live code.
 
-The gate password is whatever you set as `GATE_SECRET`.
-
 ### Checks
 
 ```
@@ -98,8 +100,8 @@ Keep copyrighted audio out of the repo — real songs are gitignored; only `plac
 ### Deploy
 
 Push to `main`. CI runs typecheck + test + build, then `wrangler deploy` from `apps/server`
-(needs `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` repo secrets). Production `GATE_SECRET`,
-`UPLOAD_TOKEN` and `UNLOCK_CODES` are set with `wrangler secret put`, not `.dev.vars`.
+(needs `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` repo secrets). Production `UPLOAD_TOKEN`
+and `UNLOCK_CODES` are set with `wrangler secret put`, not `.dev.vars`.
 
 ### Premium frogs
 

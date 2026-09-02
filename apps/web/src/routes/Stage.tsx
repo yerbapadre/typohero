@@ -1,13 +1,17 @@
 import { useState } from "react";
-import type { RoomState } from "@typohero/engine";
+import type { RoomState, Song } from "@typohero/engine";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
+import { useChart } from "../net/useChart";
 import type { CrowdMember } from "../net/useRoom";
+import type { WornShirt } from "@typohero/protocol";
 import { CabinetPage } from "../ui/CabinetPage";
+import { CabinetButton, CabinetField, CabinetInput, CabinetPanel, CabinetStatus } from "../ui/cabinet";
 import { StageView } from "../screens/multi/StageView";
 import { MultiResults } from "../screens/multi/MultiResults";
 import { CrowdFloor } from "../screens/multi/CrowdFloor";
 import { frogById } from "../characters";
+import { leadingCrowdPick } from "../game/crowdVotes";
 
 // The big screen wired to the venue projector: `/stage/<code>`. It watches a
 // room as an observer — it mirrors the band's lanes and the crowd pit without
@@ -44,28 +48,29 @@ function StageEntry({ onSubmit }: { onSubmit: (code: string) => void }) {
         </>
       }
     >
-      <div className="w-full max-w-md border-[3px] border-cabinet-frame bg-black/15 p-6 shadow-[8px_8px_0_var(--cab-shadow)]">
-        <div className="flex flex-col gap-5">
-          <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-widest text-cabinet-accent">Band code</span>
-            <input
+      <CabinetPanel className="w-full max-w-md">
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (draft.length === 4) onSubmit(draft);
+          }}
+        >
+          <CabinetField label="Band code">
+            <CabinetInput
+              code
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value.toUpperCase())}
               placeholder="code"
               maxLength={4}
-              className="border-2 border-cabinet-border bg-cabinet-btn px-4 py-4 text-center text-xl uppercase tracking-[0.4em] text-cabinet-text outline-none placeholder:tracking-widest placeholder:text-cabinet-text/30 focus:border-cabinet-accent"
             />
-          </label>
-          <button
-            disabled={draft.length < 4}
-            onClick={() => onSubmit(draft)}
-            className="w-full border-2 border-cabinet-accent bg-cabinet-accent px-5 py-5 text-sm uppercase tracking-widest text-cabinet-ink transition-colors disabled:cursor-not-allowed disabled:border-cabinet-border disabled:bg-cabinet-btn disabled:text-cabinet-text/30 md:text-base"
-          >
+          </CabinetField>
+          <CabinetButton type="submit" variant="primary" full disabled={draft.length < 4}>
             Open the Stage →
-          </button>
-        </div>
-      </div>
+          </CabinetButton>
+        </form>
+      </CabinetPanel>
     </CabinetPage>
   );
 }
@@ -74,14 +79,11 @@ function StageScreen({ roomId }: { roomId: string }) {
   const room = useRoom(roomId, "stage", true, undefined, undefined, true);
   const songs = useSongs();
   const snap = room.snapshot;
+  const chartFile = useChart(snap?.songId ?? null);
   const song = songs?.find((s) => s.id === snap?.songId) ?? null;
 
   if (!snap) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
-        opening the stage at {roomId}…
-      </div>
-    );
+    return <CabinetStatus>opening the stage at {roomId}…</CabinetStatus>;
   }
 
   if (snap.phase === "results") {
@@ -95,15 +97,26 @@ function StageScreen({ roomId }: { roomId: string }) {
         snapshot={snap}
         frame={room.frame}
         song={song}
+        chart={snap.noteMode === "rhythm" ? chartFile : null}
         youId={null}
         positions={room.positions}
         crowd={room.crowd}
+        wardrobe={room.wardrobe}
+        reactions={room.reactions}
         controllableCrowd={false}
       />
     );
   }
 
-  return <PreShow roomId={roomId} snapshot={snap} crowd={room.crowd} />;
+  return (
+    <PreShow
+      roomId={roomId}
+      snapshot={snap}
+      crowd={room.crowd}
+      wardrobe={room.wardrobe}
+      songs={songs}
+    />
+  );
 }
 
 // Holding screen before the count-in: the marquee, who's on the bill, and the
@@ -112,12 +125,20 @@ function PreShow({
   roomId,
   snapshot,
   crowd,
+  wardrobe,
+  songs,
 }: {
   roomId: string;
   snapshot: RoomState;
   crowd: CrowdMember[];
+  wardrobe: Record<string, WornShirt>;
+  songs: Song[] | null;
 }) {
-  const band = snapshot.members.filter((m) => m.connected);
+  const band = snapshot.members.filter((m) => m.connected && !m.director);
+
+  // The pit's running vote, up on the big screen until the band commits.
+  const pick = snapshot.songId ? null : leadingCrowdPick(crowd);
+  const pickTitle = pick ? (songs?.find((s) => s.id === pick.songId)?.title ?? pick.songId) : null;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-cabinet-bg font-pixel text-cabinet-text">
@@ -144,6 +165,20 @@ function PreShow({
         <div className="text-xs uppercase tracking-widest text-cabinet-text/40">
           join the crowd → /crowd
         </div>
+
+        {pickTitle && pick && (
+          <div className="border-2 border-cabinet-border bg-cabinet-btn px-6 py-3 text-center">
+            <div className="text-[10px] uppercase tracking-[0.4em] text-cabinet-text/40">
+              crowd favorite
+            </div>
+            <div className="mt-1 text-lg uppercase tracking-widest text-cabinet-accent md:text-2xl">
+              ♥ {pickTitle}
+            </div>
+            <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-text/40">
+              {pick.votes} {pick.votes === 1 ? "vote" : "votes"} from the pit
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap justify-center gap-3">
           {band.map((m) => {
@@ -172,7 +207,7 @@ function PreShow({
       </div>
 
       <div className="h-[21vh] min-h-[150px] shrink-0">
-        <CrowdFloor crowd={crowd} youId={null} controllable={false} energy={1} />
+        <CrowdFloor crowd={crowd} wardrobe={wardrobe} youId={null} controllable={false} energy={1} />
       </div>
     </div>
   );

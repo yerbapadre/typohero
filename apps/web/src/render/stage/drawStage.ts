@@ -120,7 +120,7 @@ export function createStageRenderer() {
         ctx.translate((Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
       }
       drawLaneBody(ctx, g, i, lane, palette, clock, mem);
-      drawNotes(ctx, g, i, lane, scene, palette);
+      drawNotes(ctx, g, i, lane, palette);
       drawHitBar(ctx, g, i, lane, palette, mem);
       drawDeck(ctx, g, i, lane, palette, clock);
       ctx.restore();
@@ -570,7 +570,6 @@ function drawNotes(
   g: StageGeom,
   index: number,
   lane: StageLaneView,
-  scene: StageScene,
   p: Palette,
 ): void {
   if (lane.waitingMs !== null) return;
@@ -580,7 +579,7 @@ function drawNotes(
 
   for (const note of lane.notes) {
     if (note.charEnd <= lane.cursor) continue;
-    const progress = (lane.elapsedMs - note.spawnMs) / scene.travelMs;
+    const progress = (lane.elapsedMs - note.spawnMs) / lane.travelMs;
     if (progress < CULL_BEFORE || progress > CULL_AFTER) continue;
 
     const s = depthScale(g, zAtProgress(g, progress));

@@ -8,8 +8,9 @@ export function useStemOutput(opts: {
   enabled: boolean;
   songId: string | null;
   laneQuality: LaneQuality;
+  anchorEpochMs?: number | null;
 }) {
-  const { enabled, songId, laneQuality } = opts;
+  const { enabled, songId, laneQuality, anchorEpochMs = null } = opts;
   const playerRef = useRef<MultiStemPlayer | null>(null);
 
   useEffect(() => {
@@ -23,14 +24,14 @@ export function useStemOutput(opts: {
       if (cancelled) return;
       await player.load(song, url);
       if (cancelled) return;
-      await player.start();
+      await player.start(anchorEpochMs);
     })().catch(() => {});
     return () => {
       cancelled = true;
       playerRef.current = null;
       player.stop();
     };
-  }, [enabled, songId]);
+  }, [enabled, songId, anchorEpochMs]);
 
   const key = JSON.stringify(laneQuality);
   useEffect(() => {

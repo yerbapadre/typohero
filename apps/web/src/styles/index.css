@@ -19,7 +19,7 @@
     height: 100%;
   }
   body {
-    @apply bg-neutral-900 text-white;
+    @apply bg-cabinet-bg text-cabinet-text;
   }
 }
 
@@ -60,4 +60,22 @@
 }
 .frog-bob {
   animation: frog-bob 4s ease-in-out infinite;
+}
+
+@keyframes react-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.5);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -3vh) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--react-drift, 0px)), -34vh) scale(1);
+  }
+}
+.react-float {
+  animation: react-float 2.4s ease-out forwards;
 }

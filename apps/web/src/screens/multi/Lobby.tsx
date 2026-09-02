@@ -1,27 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Room } from "../../net/useRoom";
+import { useSongs } from "../../net/useSongs";
+import { leadingCrowdPick } from "../../game/crowdVotes";
 import { FREE_FROG_IDS, FROGS, frogById } from "../../characters";
 import { isUnlocked, useUnlocks } from "../../game/unlocks";
 import { FrogArt } from "../../ui/FrogArt";
 import { UnlockForm } from "../../ui/UnlockForm";
+import { CabinetButton, CabinetPanel, CabinetStatus, CarouselArrow, RoomHeader } from "../../ui/cabinet";
 import { Playground } from "./Playground";
 
 const CHAR_KEY = "typohero:frog";
-
-function Panel({ title, children }: { title?: string; children: React.ReactNode }) {
-  return (
-    <div className="flex h-full flex-col border-[3px] border-cabinet-frame bg-black/15 p-4 shadow-[6px_6px_0_var(--cab-shadow)]">
-      {title && <div className="mb-3 text-xs uppercase tracking-widest text-cabinet-accent">{title}</div>}
-      {children}
-    </div>
-  );
-}
 
 export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   const navigate = useNavigate();
   const snap = room.snapshot!;
   const me = snap.members.find((m) => m.id === room.playerId);
+  const directing = me?.director ?? false;
+  const songs = useSongs();
+
+  // What the pit is chanting for while you're still picking frogs.
+  const crowdPick = leadingCrowdPick(room.crowd);
+  const crowdPickTitle = crowdPick
+    ? (songs?.find((s) => s.id === crowdPick.songId)?.title ?? crowdPick.songId)
+    : null;
 
   useUnlocks();
 
@@ -58,13 +60,11 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   }, []);
 
   if (!me) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
-        entering {roomId}…
-      </div>
-    );
+    return <CabinetStatus>entering {roomId}…</CabinetStatus>;
   }
 
+  const band = snap.members.filter((m) => !m.director);
+  const directors = snap.members.filter((m) => m.director);
   const myFrog = frogById(me.character?.faceId) ?? FROGS[0]!;
   const viewFrog = FROGS[view]!;
   const viewLocked = !isUnlocked(viewFrog.id);
@@ -88,19 +88,13 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
 
   return (
     <div className="flex min-h-screen flex-col items-center gap-5 bg-cabinet-bg px-6 pb-10 pt-10 font-pixel text-cabinet-text">
-      <header className="text-center">
-        <div className="text-xs uppercase tracking-widest text-cabinet-text/40">band lobby</div>
-        <div className="mt-1 text-4xl font-bold tracking-[0.3em] text-cabinet-accent md:text-5xl">{roomId}</div>
-        <div className="mt-1 text-[11px] uppercase tracking-widest text-cabinet-text/40">
-          share this code with your band
-        </div>
-      </header>
+      <RoomHeader eyebrow="band lobby" code={roomId} caption="share this code with your band" />
 
       <div className="grid w-full max-w-4xl grid-cols-1 gap-5 md:grid-cols-2">
         {/* bandmates */}
-        <Panel title={`bandmates · ${snap.members.length}`}>
+        <CabinetPanel tight title={`bandmates · ${band.length}`} className="flex h-full flex-col">
           <div className="flex flex-col gap-2">
-            {snap.members.map((m) => {
+            {[...band, ...directors].map((m) => {
               const f = frogById(m.character?.faceId);
               return (
                 <div
@@ -124,6 +118,7 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
                     {m.id === snap.hostId ? "★ " : ""}
                     {m.name}
                     {m.id === room.playerId ? " (you)" : ""}
+                    {m.director ? <span className="text-cabinet-text/40"> · 🎛 director</span> : null}
                   </span>
                 </div>
               );
@@ -134,18 +129,34 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
               👥 {room.crowd.length} watching · {room.crowd.map((c) => c.name).join(", ")}
             </div>
           )}
-        </Panel>
+          {crowdPickTitle && crowdPick && (
+            <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-accent">
+              ♥ the pit wants {crowdPickTitle} · {crowdPick.votes}{" "}
+              {crowdPick.votes === 1 ? "vote" : "votes"}
+            </div>
+          )}
+        </CabinetPanel>
 
-        {/* your frog */}
-        <Panel title="your frog">
+        {/* your frog — or the desk, if you're running the show */}
+        {directing ? (
+          <CabinetPanel tight title="the desk" className="flex h-full flex-col">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+              <div className="text-4xl">🎛</div>
+              <div className="text-[11px] uppercase tracking-widest text-cabinet-accent">directing</div>
+              <div className="max-w-[16rem] font-mono text-[10px] normal-case text-cabinet-text/50">
+                you run the song, the note style and the sound. no frog on stage, no lane to type.
+              </div>
+            </div>
+            <div className="mt-3 border-t-2 border-cabinet-frame pt-3">
+              <CabinetButton full onClick={() => room.send({ type: "setDirector", on: false })}>
+                🎸 Join the band instead
+              </CabinetButton>
+            </div>
+          </CabinetPanel>
+        ) : (
+        <CabinetPanel tight title="your frog" className="flex h-full flex-col">
           <div className="flex flex-1 items-center justify-center gap-4">
-            <button
-              onClick={() => moveView(-1)}
-              className="border-2 border-cabinet-border bg-cabinet-btn px-3 py-2 text-lg transition-colors hover:border-cabinet-accent"
-              aria-label="previous frog"
-            >
-              ‹
-            </button>
+            <CarouselArrow dir="prev" label="previous frog" onClick={() => moveView(-1)} />
             <div className="flex w-40 flex-col items-center gap-2">
               <div className="relative flex h-28 items-center justify-center">
                 <FrogArt frog={viewFrog} dimmed={viewLocked} className="h-28 w-auto" />
@@ -158,13 +169,7 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
               <div className="text-center text-[11px] uppercase tracking-widest text-cabinet-accent">{viewFrog.name}</div>
               <div className="text-center font-mono text-[10px] normal-case text-cabinet-text/50">{viewFrog.tagline}</div>
             </div>
-            <button
-              onClick={() => moveView(1)}
-              className="border-2 border-cabinet-border bg-cabinet-btn px-3 py-2 text-lg transition-colors hover:border-cabinet-accent"
-              aria-label="next frog"
-            >
-              ›
-            </button>
+            <CarouselArrow dir="next" label="next frog" onClick={() => moveView(1)} />
           </div>
           {viewLocked && (
             <div className="mt-3 border-t-2 border-cabinet-frame pt-3">
@@ -181,7 +186,13 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
               </div>
             </div>
           )}
-        </Panel>
+          <div className="mt-3 border-t-2 border-cabinet-frame pt-3">
+            <CabinetButton full onClick={() => room.send({ type: "setDirector", on: true })}>
+              🎛 Direct instead — stay off the stage
+            </CabinetButton>
+          </div>
+        </CabinetPanel>
+        )}
       </div>
 
       <div className="w-full">
@@ -190,33 +201,66 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
           youId={room.playerId}
           youName={me.name}
           youImage={myFrog.image}
-          members={snap.members}
+          members={band}
           positions={room.positions}
           onMove={onMove}
+          youOnStage={!directing}
           bandName={roomId}
           crowd={room.crowd}
         />
       </div>
 
+      {snap.hostId === room.playerId && (
+        <div className="flex w-full max-w-4xl items-center justify-between gap-4 border-[3px] border-cabinet-frame bg-black/15 px-5 py-4">
+          <div className="min-w-0">
+            <div className="text-xs uppercase tracking-widest text-cabinet-accent">Note style</div>
+            <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-text/40">
+              {snap.noteMode === "rhythm"
+                ? "letters on the song's rhythm — needs a charted song"
+                : "whole words at your difficulty's pace"}
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            {(["words", "rhythm"] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => room.send({ type: "setNoteMode", noteMode: mode })}
+                className={
+                  "border-2 px-4 py-3 text-xs uppercase tracking-widest transition-colors " +
+                  ((snap.noteMode ?? "words") === mode
+                    ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
+                    : "border-cabinet-border bg-cabinet-btn text-cabinet-text/60 hover:border-cabinet-accent")
+                }
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {snap.hostId === room.playerId ? (
-        <button
+        <CabinetButton
+          variant="primary"
+          size="hero"
+          full
+          className="max-w-4xl"
+          disabled={band.length === 0}
           onClick={() => room.send({ type: "lockIn" })}
-          className="w-full max-w-4xl border-[3px] border-cabinet-accent bg-cabinet-accent px-6 py-6 text-lg font-bold uppercase tracking-[0.2em] text-cabinet-ink shadow-[6px_6px_0_var(--cab-shadow)] transition-colors hover:bg-[#ffcf5a] md:text-2xl"
         >
-          🎸 Lock In the Band — {snap.members.length} {snap.members.length === 1 ? "frog" : "frogs"}
-        </button>
+          {band.length === 0
+            ? "waiting for a frog to join the band…"
+            : `🎸 Lock In the Band — ${band.length} ${band.length === 1 ? "frog" : "frogs"}`}
+        </CabinetButton>
       ) : (
         <div className="w-full max-w-4xl border-[3px] border-cabinet-frame bg-black/15 px-6 py-6 text-center text-sm uppercase tracking-[0.2em] text-cabinet-text/50">
           waiting for the host to lock in the band…
         </div>
       )}
 
-      <button
-        className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
-        onClick={() => navigate("/")}
-      >
+      <CabinetButton variant="ghost" onClick={() => navigate("/")}>
         ← Leave band
-      </button>
+      </CabinetButton>
     </div>
   );
 }
