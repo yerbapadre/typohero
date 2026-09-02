@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { Character } from "@typohero/engine";
 import { useRoom } from "../net/useRoom";
@@ -147,6 +147,16 @@ function RoomView({ roomId, name, directing }: { roomId: string; name: string; d
     return id ? { faceId: id, outfitId: "default", instrumentSkinId: "default" } : undefined;
   }, []);
   const room = useRoom(roomId, name, false, character, undefined, false, directing);
+
+  // `?direct=1` is only read on the way in, so keep it honest after a role
+  // switch in the lobby — otherwise a refresh would put you back at the desk.
+  // Rewritten outside the router on purpose: this must not remount the socket.
+  const role = room.snapshot?.members.find((m) => m.id === room.playerId)?.director;
+  useEffect(() => {
+    if (role === undefined) return;
+    const want = `/room/${roomId}${role ? "?direct=1" : ""}`;
+    if (location.pathname + location.search !== want) history.replaceState(null, "", want);
+  }, [role, roomId]);
 
   if (!room.snapshot) {
     return <CabinetStatus>connecting to {roomId}…</CabinetStatus>;
