@@ -10,6 +10,20 @@ import type {
 // Something a crowd frog can carry around the pit, grabbed at the bar.
 export type CrowdItem = "drink" | "pizza";
 
+// A spectator in the pit. Crowd frogs never join the roster, so everything
+// about them — where they stand, what they carry, what they voted for — rides
+// this channel instead of the room snapshot.
+export type CrowdMember = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  facing: number;
+  item?: CrowdItem;
+  /** Song this spectator is rooting for while the setlist is still open. */
+  vote?: string;
+};
+
 export type ClientMsg =
   | { type: "join"; name: string; character?: Character; reconnectToken?: string }
   | { type: "spectate"; name?: string; id?: string; observer?: boolean }
@@ -42,6 +56,6 @@ export type ServerMsg =
   | { type: "countdown"; startAtEpochMs: number }
   | { type: "frame"; atMs: number; stats: Record<string, LiveStat> }
   | { type: "results"; final: Record<string, LiveStat> }
-  | { type: "crowd"; members: { id: string; name: string; x: number; y: number; facing: number; item?: CrowdItem }[] }
+  | { type: "crowd"; members: CrowdMember[] }
   | { type: "positions"; players: Record<string, { x: number; y: number; facing: number }> }
   | { type: "error"; code: string; message: string };

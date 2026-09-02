@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Room } from "../../net/useRoom";
+import { useSongs } from "../../net/useSongs";
+import { leadingCrowdPick } from "../../game/crowdVotes";
 import { FREE_FROG_IDS, FROGS, frogById } from "../../characters";
 import { isUnlocked, useUnlocks } from "../../game/unlocks";
 import { FrogArt } from "../../ui/FrogArt";
@@ -14,6 +16,13 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   const navigate = useNavigate();
   const snap = room.snapshot!;
   const me = snap.members.find((m) => m.id === room.playerId);
+  const songs = useSongs();
+
+  // What the pit is chanting for while you're still picking frogs.
+  const crowdPick = leadingCrowdPick(room.crowd);
+  const crowdPickTitle = crowdPick
+    ? (songs?.find((s) => s.id === crowdPick.songId)?.title ?? crowdPick.songId)
+    : null;
 
   useUnlocks();
 
@@ -114,6 +123,12 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
           {room.crowd.length > 0 && (
             <div className="mt-3 text-[10px] uppercase tracking-widest text-cabinet-text/40">
               👥 {room.crowd.length} watching · {room.crowd.map((c) => c.name).join(", ")}
+            </div>
+          )}
+          {crowdPickTitle && crowdPick && (
+            <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-accent">
+              ♥ the pit wants {crowdPickTitle} · {crowdPick.votes}{" "}
+              {crowdPick.votes === 1 ? "vote" : "votes"}
             </div>
           )}
         </CabinetPanel>
