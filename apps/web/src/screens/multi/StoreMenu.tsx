@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Product } from "@typohero/engine";
 import type { Store } from "../../net/useStore";
 
@@ -84,6 +85,7 @@ export function StoreMenu({
   store,
   onBuy,
   onClose,
+  tabs,
 }: {
   label: string;
   /** Already filtered to this booth. */
@@ -91,6 +93,8 @@ export function StoreMenu({
   store: Store;
   onBuy: (productId: string) => void;
   onClose: () => void;
+  /** Booth switcher, when this booth is more than just a shop. */
+  tabs?: ReactNode;
 }) {
   const balance = store.wallet?.balance ?? 0;
 
@@ -115,6 +119,8 @@ export function StoreMenu({
         {/* min-h-0 is load-bearing: a flex child defaults to min-height:auto,
             which refuses to shrink below its content, so the panel would grow
             past max-h and the overflow would never scroll. */}
+        {tabs && <div className="mt-4 shrink-0">{tabs}</div>}
+
         <div className="-mr-2 mt-5 min-h-0 flex-1 overflow-y-auto pr-2">
           {products === null && (
             <div className="py-16 text-center font-mono text-xs lowercase text-cabinet-text/40">

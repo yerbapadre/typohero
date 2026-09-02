@@ -364,6 +364,36 @@ function RecsTable() {
 
 // Clicking a booth opens it from anywhere in the pit. Walking into range first
 // is the keyboard path; making the mouse obey the same reach just reads broken.
+// Merch is two businesses under one sign: the LeCoin shop and the shirt press.
+// The tab strip is handed to whichever panel is open, so neither has to know
+// about the other beyond rendering the strip in its own header.
+type MerchTab = "shop" | "shirt";
+
+function BoothTabs({ value, onChange }: { value: MerchTab; onChange: (t: MerchTab) => void }) {
+  const tabs: { id: MerchTab; label: string }[] = [
+    { id: "shop", label: "Shop" },
+    { id: "shirt", label: "Paint a Shirt" },
+  ];
+  return (
+    <div className="flex gap-2">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => onChange(t.id)}
+          className={
+            "border-2 px-4 py-2 text-[10px] uppercase tracking-widest transition-colors " +
+            (t.id === value
+              ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
+              : "border-cabinet-border bg-cabinet-btn text-cabinet-text/70 hover:border-cabinet-accent")
+          }
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SpotProp({ spot, onOpen }: { spot: Spot; onOpen?: () => void }) {
   const inner = <div className="pointer-events-none">{spot.render()}</div>;
   if (!onOpen) {
@@ -584,6 +614,7 @@ export function CrowdFloor({
       ? SPOTS.find((s) => Math.abs(s.x - you.x) < REACH) ?? null
       : null;
 
+  const [merchTab, setMerchTab] = useState<MerchTab>("shop");
   const [equipped, setEquipped] = useState<CrowdItem | null>(null);
 
   const equip = (item: CrowdItem | null) => {
@@ -592,6 +623,7 @@ export function CrowdFloor({
   };
 
   function openSpot(spot: Spot) {
+    setMerchTab("shop");
     setActive(spot);
     onInteract?.(spot.id);
   }
@@ -696,8 +728,11 @@ export function CrowdFloor({
 
       {nearSpot && !active && <InteractPrompt x={nearSpot.x} />}
 
-      {active?.id === "merch" ? (
-        <MerchShop onClose={() => setActive(null)} />
+      {active?.id === "merch" && merchTab === "shirt" ? (
+        <MerchShop
+          onClose={() => setActive(null)}
+          tabs={<BoothTabs value={merchTab} onChange={setMerchTab} />}
+        />
       ) : (
         active && (
           <StoreMenu
@@ -706,6 +741,11 @@ export function CrowdFloor({
             store={store}
             onBuy={buy}
             onClose={() => setActive(null)}
+            tabs={
+              active.id === "merch" ? (
+                <BoothTabs value={merchTab} onChange={setMerchTab} />
+              ) : undefined
+            }
           />
         )
       )}
