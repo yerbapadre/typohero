@@ -9,6 +9,8 @@ export type Frog = {
   stats: FrogStat[];
   /** Premium frogs are dimmed behind a padlock until an unlock code is redeemed. */
   premium?: true;
+  /** Display price for a premium frog, shown on the locked badge. */
+  price?: string;
 };
 
 export const FROGS: Frog[] = [
@@ -63,6 +65,7 @@ export const FROGS: Frog[] = [
     description:
       'Signed to no label, banned from three venues. He plays fast, he plays sloppy, and somehow the crowd never stops moving. Bring earplugs.',
     premium: true,
+    price: '$59.99',
     stats: [
       { label: 'Speed', value: 5 },
       { label: 'Focus', value: 2 },
@@ -77,6 +80,7 @@ export const FROGS: Frog[] = [
     description:
       'A frog who has never once played to an empty room. Golden pipes, bottomless lungs, and a stage presence that makes the par cans look dim.',
     premium: true,
+    price: '$59.99',
     stats: [
       { label: 'Speed', value: 4 },
       { label: 'Focus', value: 5 },

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { Frog } from "../characters";
+import { PixelSprite } from "./PixelSprite";
+import { SPRITES } from "./pixelSprites";
 
 /**
  * Frog portrait that degrades to a silhouette when the art file isn't there
@@ -16,6 +18,11 @@ export function FrogArt({
 }) {
   const [broken, setBroken] = useState(false);
   const dim = dimmed ? " opacity-40 saturate-0" : "";
+
+  const sprite = SPRITES[frog.id];
+  if (sprite) {
+    return <PixelSprite grid={sprite} label={frog.name} className={dim + " " + className} />;
+  }
 
   if (broken) {
     return (
