@@ -31,6 +31,15 @@ export type CrowdMember = {
   vote?: string;
 };
 
+/**
+ * A burst thrown at the stage from the reaction bar. Unlike the crowd and
+ * wardrobe maps this is never stored: the room relays each one to everybody and
+ * forgets it, so a reaction that arrives after you do is simply one you missed.
+ */
+export type ReactionKind = "heart" | "smile" | "star";
+
+export const REACTION_KINDS: readonly ReactionKind[] = ["heart", "smile", "star"];
+
 export type ClientMsg =
   | { type: "join"; name: string; character?: Character; reconnectToken?: string }
   | { type: "spectate"; name?: string; id?: string; observer?: boolean }
@@ -38,6 +47,7 @@ export type ClientMsg =
   // Sent once when a spectator changes shirts — never on the movement path.
   | { type: "wear"; shirt: WornShirt | null }
   | { type: "equip"; item: CrowdItem | null }
+  | { type: "react"; kind: ReactionKind }
   | { type: "lockIn" }
   | { type: "backToLobby" }
   | { type: "clearSong" }
@@ -67,5 +77,7 @@ export type ServerMsg =
   | { type: "results"; final: Record<string, LiveStat> }
   | { type: "crowd"; members: CrowdMember[] }
   | { type: "wardrobe"; shirts: Record<string, WornShirt> }
+  // `x` is where the sender was standing, so the burst rises off their own frog.
+  | { type: "reaction"; id: string; kind: ReactionKind; x: number }
   | { type: "positions"; players: Record<string, { x: number; y: number; facing: number }> }
   | { type: "error"; code: string; message: string };

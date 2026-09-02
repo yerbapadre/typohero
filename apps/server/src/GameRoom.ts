@@ -8,14 +8,24 @@ import {
   type RoomAction,
   type LiveStat,
 } from "@typohero/engine";
-import type { ClientMsg, ServerMsg, CrowdMember, WornShirt } from "@typohero/protocol";
+import {
+  REACTION_KINDS,
+  type ClientMsg,
+  type ServerMsg,
+  type CrowdMember,
+  type WornShirt,
+} from "@typohero/protocol";
 
 const FRAME_MS = 50;
 // A wire-sized print is a few KB; anything near this is not one of ours.
 const MAX_ART_CHARS = 48_000;
+// A reaction fans out to every socket in the room, so one guest leaning on the
+// button can't be allowed to drive the broadcast rate. Roughly six a second is
+// faster than anyone clicks and cheap enough to relay.
+const REACT_MIN_MS = 160;
 
 type Env = Record<string, never>;
-type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string };
+type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string; lastReactMs?: number };
 type CrowdEntry = Omit<CrowdMember, "id">;
 
 export class GameRoom extends DurableObject<Env> {
@@ -29,6 +39,7 @@ export class GameRoom extends DurableObject<Env> {
   private wardrobe = new Map<string, WornShirt>();
   private tokens = new Map<string, string>();
   private frameTimer: ReturnType<typeof setInterval> | null = null;
+  private reactionSeq = 0;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -207,6 +218,11 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
+    if (msg.type === "react") {
+      this.handleReact(conn, msg);
+      return;
+    }
+
     const playerId = conn.playerId;
     if (!playerId) return;
 
@@ -230,6 +246,29 @@ export class GameRoom extends DurableObject<Env> {
 
     await this.persist();
     this.broadcastSession();
+  }
+
+  // A reaction is pure relay: no room state to reduce, nothing to persist, so it
+  // skips the reducer path below and goes straight back out.
+  private handleReact(conn: Conn, msg: Extract<ClientMsg, { type: "react" }>): void {
+    if (!REACTION_KINDS.includes(msg.kind)) return;
+
+    // Where the sender is standing — the pit for a spectator, the riser for a
+    // band member, centre stage for a player who hasn't walked anywhere yet.
+    // Anyone without a frog of their own (the big screen) has nowhere to throw
+    // from and is ignored.
+    const at = conn.crowdId
+      ? this.crowd.get(conn.crowdId)
+      : conn.playerId
+        ? this.positions.get(conn.playerId) ?? { x: 50 }
+        : undefined;
+    if (!at) return;
+
+    const now = Date.now();
+    if (now - (conn.lastReactMs ?? 0) < REACT_MIN_MS) return;
+    conn.lastReactMs = now;
+
+    this.broadcast({ type: "reaction", id: `r${++this.reactionSeq}`, kind: msg.kind, x: at.x });
   }
 
   private handleJoin(conn: Conn, msg: Extract<ClientMsg, { type: "join" }>): void {
