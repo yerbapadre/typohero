@@ -27,6 +27,13 @@ export type StageLaneView = {
   streak: number;
   points: number;
   progress: number;
+  /**
+   * The tail of what this lane has typed, spaces restored, for the crowd-facing
+   * ticker. Reconstructed from the passage and the cursor, so it reads as the
+   * words the lane was *meant* to play — a remote lane's typos aren't on the
+   * wire, and a stream of them would be unreadable anyway.
+   */
+  typed: string;
   performer: StagePerformerView;
 };
 

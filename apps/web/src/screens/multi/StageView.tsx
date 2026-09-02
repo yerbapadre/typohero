@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   bandQuality,
   centerOn,
@@ -12,7 +12,7 @@ import type { CrowdItem, EmoteKind, ReactionKind } from "@typohero/protocol";
 import type { CrowdMember, Emote, Position, Reaction } from "../../net/useRoom";
 import type { WornShirt } from "@typohero/protocol";
 import { StageCanvas } from "../../render/StageCanvas";
-import { TRAVEL_MS } from "../../render/stage/scene";
+import { TRAVEL_MS, type StageScene } from "../../render/stage/scene";
 import { homeXPercent, RISER_ZONE } from "../../render/stage/performers";
 import { useStageScene, type LocalLane } from "../../game/useStageScene";
 import { useStageWalk } from "../../game/useStageWalk";
@@ -150,6 +150,13 @@ export function StageView({
         {onReact && <ReactionBar onReact={onReact} />}
       </div>
 
+      {lanes > 0 && (
+        <TypedTicker
+          rows={order.map((m) => ({ id: m.id, name: m.name, you: m.id === youId }))}
+          getScene={getScene}
+        />
+      )}
+
       <div className="h-[21vh] min-h-[150px] shrink-0">
         <CrowdFloor
           crowd={crowd}
@@ -168,6 +175,72 @@ export function StageView({
       {footer && <div className="shrink-0 border-t-2 border-cabinet-frame bg-black/30">{footer}</div>}
 
       <ReactionLayer reactions={reactions} />
+    </div>
+  );
+}
+
+type TickerRow = { id: string; name: string; you: boolean };
+
+/**
+ * What the room is typing, piling up. The canvas owns the notes in flight; this
+ * strip is the accumulation, so the pit and the big screen can read the words
+ * as they land. Both note modes feed it the same string — a rhythm lane just
+ * spells the passage out a letter at a time instead of a word at a time.
+ *
+ * Text is written straight to the DOM off the scene's own animation frame, the
+ * way the canvas consumes it: keystrokes must not re-render React.
+ */
+function TypedTicker({ rows, getScene }: { rows: TickerRow[]; getScene: () => StageScene }) {
+  const spans = useRef(new Map<string, { done: HTMLSpanElement | null; live: HTMLSpanElement | null }>());
+  const sceneRef = useRef(getScene);
+  sceneRef.current = getScene;
+
+  const bind = (id: string, key: "done" | "live") => (el: HTMLSpanElement | null) => {
+    const row = spans.current.get(id) ?? { done: null, live: null };
+    row[key] = el;
+    spans.current.set(id, row);
+  };
+
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      for (const lane of sceneRef.current().lanes) {
+        const row = spans.current.get(lane.id);
+        if (!row) continue;
+        // The word still being played leads in amber; everything already
+        // landed sits behind it, dimmed.
+        const cut = lane.typed.lastIndexOf(" ");
+        const done = cut < 0 ? "" : lane.typed.slice(0, cut + 1);
+        const live = cut < 0 ? lane.typed : lane.typed.slice(cut + 1);
+        if (row.done && row.done.textContent !== done) row.done.textContent = done;
+        if (row.live && row.live.textContent !== live) row.live.textContent = live;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return (
+    <div className="shrink-0 border-t-2 border-cabinet-frame bg-black/30 px-3 py-1.5">
+      {rows.map((row) => (
+        <div key={row.id} className="flex items-baseline gap-2 overflow-hidden">
+          <span
+            className={
+              "w-20 shrink-0 truncate text-[9px] uppercase tracking-widest md:w-24 " +
+              (row.you ? "text-cabinet-accent" : "text-cabinet-text/40")
+            }
+          >
+            {row.name}
+          </span>
+          {/* Pinned right and clipped left, so the newest letters are always
+              the ones on screen however long the passage runs. */}
+          <div className="flex min-w-0 flex-1 justify-end overflow-hidden font-mono text-[11px] leading-5 md:text-xs">
+            <span ref={bind(row.id, "done")} className="whitespace-pre text-cabinet-text/45" />
+            <span ref={bind(row.id, "live")} className="whitespace-pre text-cabinet-accent" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

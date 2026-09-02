@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import {
   buildNotes,
   notesText,
+  tokenizeWords,
+  typedTail,
   passageById,
   firstPassage,
   laneFirstActiveMs,
@@ -68,6 +70,11 @@ export function useStageScene(opts: {
         image: frogById(m.character?.faceId)?.image ?? null,
       };
 
+      // Both note modes count letters into the same passage — a word lane's
+      // cursor and a rhythm lane's resolved notes — so one word list serves the
+      // ticker either way.
+      const words = tokenizeWords(passage.content);
+
       const charted = chart && laneTimes(chart, instrument, m.difficulty).length > 0;
       if (charted) {
         const laneChart = chartFromFile(chart, instrument, m.difficulty, passage.content, {
@@ -76,6 +83,7 @@ export function useStageScene(opts: {
         const laneTravelMs = travelMsForChart(laneChart);
         return {
           ...common,
+          words,
           rhythm: true,
           travelMs: laneTravelMs,
           notes: chartNotes(laneChart, laneTravelMs),
@@ -86,6 +94,7 @@ export function useStageScene(opts: {
 
       return {
         ...common,
+        words,
         rhythm: false,
         travelMs,
         notes: buildNotes(passage.content, DIFFICULTY_WPM[m.difficulty], { travelMs }),
@@ -107,6 +116,7 @@ export function useStageScene(opts: {
       const waitingMs = laneStart === null ? 0 : laneStart > now ? laneStart - now : null;
       const view = you ? local?.view() : undefined;
       const at = (you ? localWalk?.() : null) ?? positions[src.id] ?? null;
+      const cursor = view ? view.cursor : cursorFromProgress(stat?.progress ?? 0, src.textLength);
 
       return {
         id: src.id,
@@ -115,7 +125,7 @@ export function useStageScene(opts: {
         you,
         notes: src.notes,
         travelMs: src.travelMs,
-        cursor: view ? view.cursor : cursorFromProgress(stat?.progress ?? 0, src.textLength),
+        cursor,
         displayChars: view ? view.displayChars : null,
         elapsedMs: laneStart === null ? 0 : now - laneStart,
         waitingMs,
@@ -123,6 +133,7 @@ export function useStageScene(opts: {
         streak: view ? view.streak : (stat?.streak ?? 0),
         points: view ? view.points : (stat?.points ?? 0),
         progress: stat?.progress ?? 0,
+        typed: typedTail(src.words, cursor),
         performer: {
           image: src.image,
           xPercent: at ? at.x : null,

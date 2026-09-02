@@ -11,6 +11,7 @@ import {
   travelMsForChart,
   type ChartFile,
 } from "./chart";
+import { tokenizeWords, typedTail } from "./notes";
 
 const grid = (count: number, stepMs: number, from = 0) =>
   Array.from({ length: count }, (_, i) => from + i * stepMs);
@@ -187,3 +188,32 @@ describe("travelMsForChart", () => {
     expect(travelMsForChart(buildChart("a", [0]))).toBe(4000);
   });
 });
+
+// The crowd ticker reads a lane's cursor as "letters into the passage" and
+// rebuilds the text from the passage alone. That only works while a rhythm
+// chart spends the passage's letters in order, looping included — so pin it.
+describe("chart letters line up with the typed ticker", () => {
+  const passage = "make customers win";
+  const words = tokenizeWords(passage);
+
+  it("advances one passage letter per resolved note", () => {
+    const chart = buildChart(passage, grid(letterTotal(words), 200));
+    for (let resolved = 1; resolved <= chart.notes.length; resolved++) {
+      const tail = typedTail(words, resolved);
+      expect(tail.at(-1)).toBe(chart.notes[resolved - 1]!.char);
+    }
+  });
+
+  it("keeps lining up once a looping chart reuses the passage", () => {
+    const total = letterTotal(words);
+    const chart = buildChart(passage, grid(total + 5, 200), { loop: true });
+    for (let resolved = total + 1; resolved <= chart.notes.length; resolved++) {
+      const tail = typedTail(words, resolved);
+      expect(tail.at(-1)).toBe(chart.notes[resolved - 1]!.char);
+    }
+  });
+});
+
+function letterTotal(words: string[]): number {
+  return words.reduce((sum, w) => sum + w.length, 0);
+}

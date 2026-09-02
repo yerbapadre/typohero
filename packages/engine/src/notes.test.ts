@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { createRun, applyKeypress } from "./typing";
-import { buildNotes, notesText, tokenizeWords, activeWordStart, applyNotePace } from "./notes";
+import {
+  buildNotes,
+  notesText,
+  tokenizeWords,
+  activeWordStart,
+  applyNotePace,
+  typedTail,
+} from "./notes";
 
 const PASSAGE = "the quick brown";
 
@@ -84,5 +91,39 @@ describe("applyNotePace", () => {
     const paced = applyNotePace(run, notes, 3000);
     expect(paced.streak).toBe(3);
     expect(paced.cursor).toBe(3);
+  });
+});
+
+describe("typedTail", () => {
+  const words = tokenizeWords("make customers win every single day");
+
+  it("puts the spaces back so the crowd can read it", () => {
+    expect(typedTail(words, "makecustomers".length)).toBe("make customers");
+  });
+
+  it("shows the word in flight half-typed", () => {
+    expect(typedTail(words, "makecusto".length)).toBe("make custo");
+  });
+
+  it("is empty before the first keystroke", () => {
+    expect(typedTail(words, 0)).toBe("");
+    expect(typedTail([], 5)).toBe("");
+  });
+
+  it("keeps the newest text when the tail outgrows the window", () => {
+    const tail = typedTail(words, 26, 12);
+    expect(tail.length).toBeLessThanOrEqual(12);
+    expect("make customers win every single day").toContain(tail);
+    expect(tail.endsWith("singl")).toBe(true);
+  });
+
+  it("cuts a single over-long word rather than showing nothing", () => {
+    expect(typedTail(["superlonghandedword"], 19, 6)).toBe("edword");
+  });
+
+  it("wraps like a looping rhythm chart, restarting each pass", () => {
+    const letters = notesText("make customers win every single day").length;
+    expect(typedTail(words, letters)).toBe("make customers win every single day");
+    expect(typedTail(words, letters + 4)).toBe("make");
   });
 });
