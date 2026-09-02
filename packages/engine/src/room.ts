@@ -307,7 +307,12 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
         songDurationMs: null,
         startProposal: null,
         startedAtEpochMs: null,
-        members: state.members.map((m) => ({ ...m, ready: false })),
+        members: state.members.map((m) => ({
+          ...m,
+          ready: false,
+          songCursor: null,
+          songVote: null,
+        })),
       };
     }
 

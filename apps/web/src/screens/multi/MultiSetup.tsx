@@ -8,6 +8,7 @@ import {
 import type { Room } from "../../net/useRoom";
 import { useSongs } from "../../net/useSongs";
 import { useSongPreview } from "../../game/useSongPreview";
+import { tallyCrowdVotes } from "../../game/crowdVotes";
 import { frogById } from "../../characters";
 import { InstrumentGrid } from "../../ui/InstrumentGrid";
 import { CabinetButton, CabinetPanel } from "../../ui/cabinet";
@@ -24,6 +25,7 @@ export function MultiSetup({ room }: { room: Room }) {
   const song = songs?.find((s) => s.id === snap.songId) ?? null;
   const available = new Set<InstrumentLane>(song ? presentLanes(song) : INSTRUMENT_LANES);
   const connected = snap.members.filter((m) => m.connected && !m.director);
+  const crowdTally = tallyCrowdVotes(room.crowd);
   const readyCount = connected.filter((m) => m.ready && m.instrument).length;
   const allReady = connected.length > 0 && readyCount === connected.length;
 
@@ -125,6 +127,11 @@ export function MultiSetup({ room }: { room: Room }) {
         <>
           <div className="max-w-md text-center text-[11px] uppercase tracking-widest text-cabinet-text/40">
             {isHost ? "your pick plays · ↑↓ to move · enter to lock in" : "↑↓ to browse · enter to vote · host picks the song"}
+            {room.crowd.length > 0 && (
+              <div className="mt-1 text-cabinet-text/30">
+                👥 {room.crowd.length} in the pit voting too
+              </div>
+            )}
           </div>
           <CabinetPanel tight className="w-full max-w-md">
             <div className="flex max-h-[48vh] flex-col gap-2 overflow-y-auto">
@@ -173,6 +180,14 @@ export function MultiSetup({ room }: { room: Room }) {
                           {votes > 0 && (
                             <span className="border-2 border-cabinet-accent px-1.5 text-[10px] font-bold text-cabinet-accent">
                               ♥ {votes}
+                            </span>
+                          )}
+                          {(crowdTally[s.id] ?? 0) > 0 && (
+                            <span
+                              className="border-2 border-cabinet-border px-1.5 text-[10px] font-bold text-cabinet-text/60"
+                              title="votes from the crowd"
+                            >
+                              👥 {crowdTally[s.id]}
                             </span>
                           )}
                         </div>

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type { ClientMsg, WornShirt, CrowdItem, ReactionKind } from "@typohero/protocol";
+import type { ClientMsg, CrowdMember, WornShirt, ReactionKind } from "@typohero/protocol";
 import type { RoomState, LiveStat, Character } from "@typohero/engine";
 import { RoomClient } from "./RoomClient";
 
 export type Position = { x: number; y: number; facing: number };
-export type CrowdMember = { id: string; name: string; x: number; y: number; facing: number; item?: CrowdItem };
+export type { CrowdMember };
 
 /** A burst in flight. `at` is when we received it, not when it was sent: the
  *  animation is local, and the room's clock is not ours to trust. */

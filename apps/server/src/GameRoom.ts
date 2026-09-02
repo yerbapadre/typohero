@@ -8,7 +8,13 @@ import {
   type RoomAction,
   type LiveStat,
 } from "@typohero/engine";
-import { REACTION_KINDS, type ClientMsg, type ServerMsg, type WornShirt, type CrowdItem } from "@typohero/protocol";
+import {
+  REACTION_KINDS,
+  type ClientMsg,
+  type ServerMsg,
+  type CrowdMember,
+  type WornShirt,
+} from "@typohero/protocol";
 
 const FRAME_MS = 50;
 // A wire-sized print is a few KB; anything near this is not one of ours.
@@ -20,7 +26,7 @@ const REACT_MIN_MS = 160;
 
 type Env = Record<string, never>;
 type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string; lastReactMs?: number };
-type CrowdEntry = { name: string; x: number; y: number; facing: number; item?: CrowdItem };
+type CrowdEntry = Omit<CrowdMember, "id">;
 
 export class GameRoom extends DurableObject<Env> {
   private room: RoomState = initialRoom();
@@ -82,6 +88,24 @@ export class GameRoom extends DurableObject<Env> {
   private broadcastCrowd(): void {
     const members = [...this.crowd.entries()].map(([id, e]) => ({ id, ...e }));
     this.broadcast({ type: "crowd", members });
+  }
+
+  /** Spectators can only vote while the band hasn't locked a song in yet. */
+  private setlistOpen(): boolean {
+    return (
+      this.room.songId === null && (this.room.phase === "lobby" || this.room.phase === "setup")
+    );
+  }
+
+  private clearCrowdVotes(): void {
+    let changed = false;
+    for (const e of this.crowd.values()) {
+      if (e.vote !== undefined) {
+        e.vote = undefined;
+        changed = true;
+      }
+    }
+    if (changed) this.broadcastCrowd();
   }
 
   private wardrobeObject(): Record<string, WornShirt> {
@@ -172,6 +196,17 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
+    // Spectators get a say in the setlist. Their vote lives on the crowd entry
+    // (not the roster) so it disappears with them when they leave the pit.
+    if (msg.type === "voteSong" && conn.crowdId) {
+      const e = this.crowd.get(conn.crowdId);
+      if (e && this.setlistOpen()) {
+        e.vote = msg.songId;
+        this.broadcastCrowd();
+      }
+      return;
+    }
+
     if (msg.type === "equip") {
       if (conn.crowdId) {
         const e = this.crowd.get(conn.crowdId);
@@ -201,6 +236,12 @@ export class GameRoom extends DurableObject<Env> {
 
     if (this.room.phase === "countdown" && before !== "countdown") {
       this.beginCountdown();
+    }
+
+    // Back in the lobby the setlist reopens, so last show's crowd votes go with
+    // it — the reducer clears the band's the same way.
+    if (this.room.phase === "lobby" && before !== "lobby") {
+      this.clearCrowdVotes();
     }
 
     await this.persist();

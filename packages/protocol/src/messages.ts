@@ -17,6 +17,20 @@ export type WornShirt = { garment: string; art: string };
 // Something a crowd frog can carry around the pit, grabbed at the bar.
 export type CrowdItem = "drink" | "pizza";
 
+// A spectator in the pit. Crowd frogs never join the roster, so everything
+// about them — where they stand, what they carry, what they voted for — rides
+// this channel instead of the room snapshot.
+export type CrowdMember = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  facing: number;
+  item?: CrowdItem;
+  /** Song this spectator is rooting for while the setlist is still open. */
+  vote?: string;
+};
+
 /**
  * A burst thrown at the stage from the reaction bar. Unlike the crowd and
  * wardrobe maps this is never stored: the room relays each one to everybody and
@@ -64,7 +78,7 @@ export type ServerMsg =
   | { type: "countdown"; startAtEpochMs: number }
   | { type: "frame"; atMs: number; stats: Record<string, LiveStat> }
   | { type: "results"; final: Record<string, LiveStat> }
-  | { type: "crowd"; members: { id: string; name: string; x: number; y: number; facing: number; item?: CrowdItem }[] }
+  | { type: "crowd"; members: CrowdMember[] }
   | { type: "wardrobe"; shirts: Record<string, WornShirt> }
   // `x` is where the sender was standing, so the burst rises off their own frog.
   | { type: "reaction"; id: string; kind: ReactionKind; x: number }
