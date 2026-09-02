@@ -1,4 +1,11 @@
-import type { InstrumentLane, Difficulty, Character, RoomState, LiveStat } from "@typohero/engine";
+import type {
+  InstrumentLane,
+  Difficulty,
+  Character,
+  RoomState,
+  LiveStat,
+  NoteMode,
+} from "@typohero/engine";
 
 export type ClientMsg =
   | { type: "join"; name: string; character?: Character; reconnectToken?: string }
@@ -21,6 +28,7 @@ export type ClientMsg =
   | { type: "proposeStart" }
   | { type: "confirmStart" }
   | { type: "setMode"; mode: "shared" | "distributed" }
+  | { type: "setNoteMode"; noteMode: NoteMode }
   | { type: "assignAudio"; playerId: string; on: boolean }
   | { type: "nextSong" };
 

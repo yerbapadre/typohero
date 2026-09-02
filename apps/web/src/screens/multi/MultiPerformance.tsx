@@ -35,13 +35,14 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
   const chartFile = useChart(snap.songId);
   const passage = (me.passageId && passageById(me.passageId)) || firstPassage();
 
-  // A charted lane plays to the song's rhythm; anything else falls back to the
-  // WPM-paced word highway.
+  // A charted lane plays to the song's rhythm when the host has turned it on;
+  // anything else falls back to the WPM-paced word highway.
+  const rhythmOn = snap.noteMode === "rhythm";
   const chart = useMemo(() => {
-    if (!chartFile || !me.instrument) return null;
+    if (!rhythmOn || !chartFile || !me.instrument) return null;
     if (laneTimes(chartFile, me.instrument, me.difficulty).length === 0) return null;
     return chartFromFile(chartFile, me.instrument, me.difficulty, passage.content, { loop: true });
-  }, [chartFile, me.instrument, me.difficulty, passage.content]);
+  }, [rhythmOn, chartFile, me.instrument, me.difficulty, passage.content]);
 
   const songStartMs = snap.startedAtEpochMs;
   const cueMs = song && me.instrument ? laneFirstActiveMs(song, me.instrument) : 0;
@@ -117,7 +118,7 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
       frame={room.frame}
       song={song}
       youId={room.playerId}
-      chart={chartFile}
+      chart={rhythmOn ? chartFile : null}
       local={local}
       positions={room.positions}
       onBandMove={onBandMove}

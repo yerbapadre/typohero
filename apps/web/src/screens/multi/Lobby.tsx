@@ -198,6 +198,35 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
         />
       </div>
 
+      {snap.hostId === room.playerId && (
+        <div className="flex w-full max-w-4xl items-center justify-between gap-4 border-[3px] border-cabinet-frame bg-black/15 px-5 py-4">
+          <div className="min-w-0">
+            <div className="text-xs uppercase tracking-widest text-cabinet-accent">Note style</div>
+            <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-text/40">
+              {snap.noteMode === "rhythm"
+                ? "letters on the song's rhythm — needs a charted song"
+                : "whole words at your difficulty's pace"}
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            {(["words", "rhythm"] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => room.send({ type: "setNoteMode", noteMode: mode })}
+                className={
+                  "border-2 px-4 py-3 text-xs uppercase tracking-widest transition-colors " +
+                  ((snap.noteMode ?? "words") === mode
+                    ? "border-cabinet-accent bg-cabinet-accent text-cabinet-ink"
+                    : "border-cabinet-border bg-cabinet-btn text-cabinet-text/60 hover:border-cabinet-accent")
+                }
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {snap.hostId === room.playerId ? (
         <button
           onClick={() => room.send({ type: "lockIn" })}

@@ -169,7 +169,7 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         snapshot={snap}
         frame={room.frame}
         song={song}
-        chart={chartFile}
+        chart={snap.noteMode === "rhythm" ? chartFile : null}
         youId={null}
         positions={room.positions}
         crowd={room.crowd}

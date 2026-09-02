@@ -6,6 +6,9 @@ export type Mode = "single" | "multi";
 
 export type RoomPhase = "lobby" | "setup" | "countdown" | "playing" | "results";
 
+/** Whether lanes type whole words on a WPM pace, or single letters on the song's rhythm. */
+export type NoteMode = "words" | "rhythm";
+
 export type Member = {
   id: string;
   name: string;
@@ -32,6 +35,7 @@ export type RoomState = {
   songDurationMs: number | null;
   startProposal: StartProposal | null;
   startedAtEpochMs: number | null;
+  noteMode: NoteMode;
 };
 
 export type RoomAction =
@@ -53,6 +57,7 @@ export type RoomAction =
   | { t: "proposeStart"; id: string }
   | { t: "confirmStart"; id: string }
   | { t: "setMode"; id: string; mode: "shared" | "distributed" }
+  | { t: "setNoteMode"; id: string; noteMode: NoteMode }
   | { t: "assignAudio"; id: string; playerId: string; on: boolean }
   | { t: "nextSong"; id: string }
   | { t: "songStarted" }
@@ -70,6 +75,7 @@ export function initialRoom(): RoomState {
     songDurationMs: null,
     startProposal: null,
     startedAtEpochMs: null,
+    noteMode: "words",
   };
 }
 
@@ -224,6 +230,12 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
       if (!p || !state.songId || !allReady(state)) return state;
       if (p.by === action.id && !isHost(state, action.id)) return state;
       return { ...state, phase: "countdown" };
+    }
+
+    case "setNoteMode": {
+      if (!isHost(state, action.id)) return state;
+      if (state.phase !== "lobby" && state.phase !== "setup") return state;
+      return { ...state, noteMode: action.noteMode };
     }
 
     case "setMode": {
