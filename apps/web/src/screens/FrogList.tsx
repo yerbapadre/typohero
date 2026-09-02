@@ -3,21 +3,12 @@ import { FROGS, type FrogStat } from "../characters";
 import { isUnlocked, useUnlocks } from "../game/unlocks";
 import { FrogArt } from "../ui/FrogArt";
 import { UnlockForm } from "../ui/UnlockForm";
+import { CarouselArrow, Pips } from "../ui/cabinet";
 
 const STAT_ORDER = ["Speed", "Focus", "Power"];
 
 function orderedStats(stats: FrogStat[]) {
   return [...stats].sort((a, b) => STAT_ORDER.indexOf(a.label) - STAT_ORDER.indexOf(b.label));
-}
-
-function Pips({ value }: { value: number }) {
-  return (
-    <div className="flex gap-1">
-      {Array.from({ length: 5 }, (_, i) => (
-        <div key={i} className={"h-2.5 w-5 " + (i < value ? "bg-cabinet-accent" : "bg-cabinet-border")} />
-      ))}
-    </div>
-  );
 }
 
 export function FrogList({
@@ -73,13 +64,12 @@ export function FrogList({
       }}
     >
       <div className="relative border-[3px] border-cabinet-frame bg-black/20 p-4 shadow-[8px_8px_0_var(--cab-shadow)]">
-        <button
+        <CarouselArrow
+          dir="prev"
+          label="previous frog"
           onClick={() => move(-1)}
-          aria-label="previous frog"
-          className="absolute left-2 top-1/2 z-10 -translate-y-1/2 border-2 border-cabinet-border bg-cabinet-btn px-3 py-2 text-lg text-cabinet-text transition-colors hover:border-cabinet-accent"
-        >
-          ‹
-        </button>
+          className="absolute left-2 top-1/2 z-10 -translate-y-1/2"
+        />
 
         <div key={frog.id} className={(dir === 1 ? "frog-in-right" : "frog-in-left") + " flex flex-col items-center gap-3 px-12"}>
           <div className="relative flex h-44 items-center justify-center md:h-52">
@@ -105,13 +95,12 @@ export function FrogList({
           </div>
         </div>
 
-        <button
+        <CarouselArrow
+          dir="next"
+          label="next frog"
           onClick={() => move(1)}
-          aria-label="next frog"
-          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 border-2 border-cabinet-border bg-cabinet-btn px-3 py-2 text-lg text-cabinet-text transition-colors hover:border-cabinet-accent"
-        >
-          ›
-        </button>
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2"
+        />
       </div>
 
       <div className="mt-4 flex flex-col gap-2 border-2 border-cabinet-frame bg-black/15 p-4">

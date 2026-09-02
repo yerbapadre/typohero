@@ -5,18 +5,10 @@ import { FREE_FROG_IDS, FROGS, frogById } from "../../characters";
 import { isUnlocked, useUnlocks } from "../../game/unlocks";
 import { FrogArt } from "../../ui/FrogArt";
 import { UnlockForm } from "../../ui/UnlockForm";
+import { CabinetButton, CabinetPanel, CabinetStatus, CarouselArrow, RoomHeader } from "../../ui/cabinet";
 import { Playground } from "./Playground";
 
 const CHAR_KEY = "typohero:frog";
-
-function Panel({ title, children }: { title?: string; children: React.ReactNode }) {
-  return (
-    <div className="flex h-full flex-col border-[3px] border-cabinet-frame bg-black/15 p-4 shadow-[6px_6px_0_var(--cab-shadow)]">
-      {title && <div className="mb-3 text-xs uppercase tracking-widest text-cabinet-accent">{title}</div>}
-      {children}
-    </div>
-  );
-}
 
 export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   const navigate = useNavigate();
@@ -58,11 +50,7 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
   }, []);
 
   if (!me) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-cabinet-bg font-pixel text-sm uppercase tracking-widest text-cabinet-text/50">
-        entering {roomId}…
-      </div>
-    );
+    return <CabinetStatus>entering {roomId}…</CabinetStatus>;
   }
 
   const myFrog = frogById(me.character?.faceId) ?? FROGS[0]!;
@@ -88,17 +76,11 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
 
   return (
     <div className="flex min-h-screen flex-col items-center gap-5 bg-cabinet-bg px-6 pb-10 pt-10 font-pixel text-cabinet-text">
-      <header className="text-center">
-        <div className="text-xs uppercase tracking-widest text-cabinet-text/40">band lobby</div>
-        <div className="mt-1 text-4xl font-bold tracking-[0.3em] text-cabinet-accent md:text-5xl">{roomId}</div>
-        <div className="mt-1 text-[11px] uppercase tracking-widest text-cabinet-text/40">
-          share this code with your band
-        </div>
-      </header>
+      <RoomHeader eyebrow="band lobby" code={roomId} caption="share this code with your band" />
 
       <div className="grid w-full max-w-4xl grid-cols-1 gap-5 md:grid-cols-2">
         {/* bandmates */}
-        <Panel title={`bandmates · ${snap.members.length}`}>
+        <CabinetPanel tight title={`bandmates · ${snap.members.length}`} className="flex h-full flex-col">
           <div className="flex flex-col gap-2">
             {snap.members.map((m) => {
               const f = frogById(m.character?.faceId);
@@ -134,18 +116,12 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
               👥 {room.crowd.length} watching · {room.crowd.map((c) => c.name).join(", ")}
             </div>
           )}
-        </Panel>
+        </CabinetPanel>
 
         {/* your frog */}
-        <Panel title="your frog">
+        <CabinetPanel tight title="your frog" className="flex h-full flex-col">
           <div className="flex flex-1 items-center justify-center gap-4">
-            <button
-              onClick={() => moveView(-1)}
-              className="border-2 border-cabinet-border bg-cabinet-btn px-3 py-2 text-lg transition-colors hover:border-cabinet-accent"
-              aria-label="previous frog"
-            >
-              ‹
-            </button>
+            <CarouselArrow dir="prev" label="previous frog" onClick={() => moveView(-1)} />
             <div className="flex w-40 flex-col items-center gap-2">
               <div className="relative flex h-28 items-center justify-center">
                 <FrogArt frog={viewFrog} dimmed={viewLocked} className="h-28 w-auto" />
@@ -158,13 +134,7 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
               <div className="text-center text-[11px] uppercase tracking-widest text-cabinet-accent">{viewFrog.name}</div>
               <div className="text-center font-mono text-[10px] normal-case text-cabinet-text/50">{viewFrog.tagline}</div>
             </div>
-            <button
-              onClick={() => moveView(1)}
-              className="border-2 border-cabinet-border bg-cabinet-btn px-3 py-2 text-lg transition-colors hover:border-cabinet-accent"
-              aria-label="next frog"
-            >
-              ›
-            </button>
+            <CarouselArrow dir="next" label="next frog" onClick={() => moveView(1)} />
           </div>
           {viewLocked && (
             <div className="mt-3 border-t-2 border-cabinet-frame pt-3">
@@ -181,7 +151,7 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
               </div>
             </div>
           )}
-        </Panel>
+        </CabinetPanel>
       </div>
 
       <div className="w-full">
@@ -228,24 +198,24 @@ export function Lobby({ roomId, room }: { roomId: string; room: Room }) {
       )}
 
       {snap.hostId === room.playerId ? (
-        <button
+        <CabinetButton
+          variant="primary"
+          size="hero"
+          full
+          className="max-w-4xl"
           onClick={() => room.send({ type: "lockIn" })}
-          className="w-full max-w-4xl border-[3px] border-cabinet-accent bg-cabinet-accent px-6 py-6 text-lg font-bold uppercase tracking-[0.2em] text-cabinet-ink shadow-[6px_6px_0_var(--cab-shadow)] transition-colors hover:bg-[#ffcf5a] md:text-2xl"
         >
           🎸 Lock In the Band — {snap.members.length} {snap.members.length === 1 ? "frog" : "frogs"}
-        </button>
+        </CabinetButton>
       ) : (
         <div className="w-full max-w-4xl border-[3px] border-cabinet-frame bg-black/15 px-6 py-6 text-center text-sm uppercase tracking-[0.2em] text-cabinet-text/50">
           waiting for the host to lock in the band…
         </div>
       )}
 
-      <button
-        className="text-sm uppercase tracking-widest text-cabinet-text/40 hover:text-cabinet-text"
-        onClick={() => navigate("/")}
-      >
+      <CabinetButton variant="ghost" onClick={() => navigate("/")}>
         ← Leave band
-      </button>
+      </CabinetButton>
     </div>
   );
 }
