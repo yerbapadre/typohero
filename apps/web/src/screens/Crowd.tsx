@@ -17,6 +17,7 @@ import {
   RoomHeader,
 } from "../ui/cabinet";
 import { Playground } from "./multi/Playground";
+import { SetlistVote } from "./multi/SetlistVote";
 import { StageView } from "./multi/StageView";
 import { MultiResults } from "./multi/MultiResults";
 
@@ -136,6 +137,12 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
     [],
   );
 
+  const onVote = useCallback(
+    (songId: string) => room.send({ type: "voteSong", songId }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   if (!snap) {
     return <CabinetStatus>joining the crowd at {roomId}…</CabinetStatus>;
   }
@@ -171,6 +178,14 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         eyebrow="now watching"
         code={roomId}
         caption={`in the crowd as ${name} · 👥 ${room.crowd.length}`}
+      />
+
+      <SetlistVote
+        songs={songs}
+        crowd={room.crowd}
+        youId={spectatorId}
+        lockedSongId={snap.songId}
+        onVote={onVote}
       />
 
       <div className="w-full">

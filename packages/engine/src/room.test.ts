@@ -239,6 +239,20 @@ describe("song cursor & votes", () => {
     expect(s.members[0]!.songVote).toBe("waterloo");
   });
 
+  it("nextSong clears cursors and votes for the next round", () => {
+    let s = run(
+      lobbyWith("a"),
+      { t: "lockIn", id: "a" },
+      { t: "setSongCursor", id: "a", songId: "chocolate" },
+      { t: "voteSong", id: "a", songId: "chocolate" },
+      { t: "endPerformance" },
+      { t: "nextSong", id: "a" },
+    );
+    expect(s.phase).toBe("lobby");
+    expect(s.members[0]!.songCursor).toBeNull();
+    expect(s.members[0]!.songVote).toBeNull();
+  });
+
   it("backToLobby clears cursors and votes", () => {
     let s = run(
       lobbyWith("a"),

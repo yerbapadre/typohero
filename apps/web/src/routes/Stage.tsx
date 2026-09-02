@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { RoomState } from "@typohero/engine";
+import type { RoomState, Song } from "@typohero/engine";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import { useChart } from "../net/useChart";
@@ -11,6 +11,7 @@ import { StageView } from "../screens/multi/StageView";
 import { MultiResults } from "../screens/multi/MultiResults";
 import { CrowdFloor } from "../screens/multi/CrowdFloor";
 import { frogById } from "../characters";
+import { leadingCrowdPick } from "../game/crowdVotes";
 
 // The big screen wired to the venue projector: `/stage/<code>`. It watches a
 // room as an observer — it mirrors the band's lanes and the crowd pit without
@@ -106,7 +107,15 @@ function StageScreen({ roomId }: { roomId: string }) {
     );
   }
 
-  return <PreShow roomId={roomId} snapshot={snap} crowd={room.crowd} wardrobe={room.wardrobe} />;
+  return (
+    <PreShow
+      roomId={roomId}
+      snapshot={snap}
+      crowd={room.crowd}
+      wardrobe={room.wardrobe}
+      songs={songs}
+    />
+  );
 }
 
 // Holding screen before the count-in: the marquee, who's on the bill, and the
@@ -116,13 +125,19 @@ function PreShow({
   snapshot,
   crowd,
   wardrobe,
+  songs,
 }: {
   roomId: string;
   snapshot: RoomState;
   crowd: CrowdMember[];
   wardrobe: Record<string, WornShirt>;
+  songs: Song[] | null;
 }) {
   const band = snapshot.members.filter((m) => m.connected);
+
+  // The pit's running vote, up on the big screen until the band commits.
+  const pick = snapshot.songId ? null : leadingCrowdPick(crowd);
+  const pickTitle = pick ? (songs?.find((s) => s.id === pick.songId)?.title ?? pick.songId) : null;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-cabinet-bg font-pixel text-cabinet-text">
@@ -149,6 +164,20 @@ function PreShow({
         <div className="text-xs uppercase tracking-widest text-cabinet-text/40">
           join the crowd → /crowd
         </div>
+
+        {pickTitle && pick && (
+          <div className="border-2 border-cabinet-border bg-cabinet-btn px-6 py-3 text-center">
+            <div className="text-[10px] uppercase tracking-[0.4em] text-cabinet-text/40">
+              crowd favorite
+            </div>
+            <div className="mt-1 text-lg uppercase tracking-widest text-cabinet-accent md:text-2xl">
+              ♥ {pickTitle}
+            </div>
+            <div className="mt-1 text-[10px] uppercase tracking-widest text-cabinet-text/40">
+              {pick.votes} {pick.votes === 1 ? "vote" : "votes"} from the pit
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap justify-center gap-3">
           {band.map((m) => {
