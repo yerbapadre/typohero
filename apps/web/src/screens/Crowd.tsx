@@ -5,6 +5,7 @@ import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import { useChart } from "../net/useChart";
 import { CROWD_FROG_IMAGE } from "../characters";
+import { CrowdFrog } from "../ui/CrowdFrog";
 import { CabinetPage } from "../ui/CabinetPage";
 import { useWorn } from "../merch/shirts";
 import { NameEntry } from "../ui/NameEntry";
@@ -42,12 +43,8 @@ export function CrowdEntry() {
         </>
       }
     >
-      <img
-        src={CROWD_FROG_IMAGE}
-        alt=""
-        draggable={false}
-        className="h-32 w-auto select-none object-contain md:h-40"
-      />
+      {/* Previews the body you'll walk in as, cameo and all, before you join. */}
+      <CrowdFrog name={name} className="h-32 w-auto select-none md:h-40" />
 
       <CabinetPanel className="w-full max-w-md">
         <div className="flex flex-col gap-5">

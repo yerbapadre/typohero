@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { PAL, SPRITE_W } from "./pixelSprites";
 
 const CELL = 8; // internal px per sprite pixel; CSS scales the canvas to fit.
@@ -8,10 +8,12 @@ export function PixelSprite({
   grid,
   label,
   className = "",
+  style,
 }: {
   grid: string[];
   label: string;
   className?: string;
+  style?: CSSProperties;
 }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
 
@@ -41,6 +43,7 @@ export function PixelSprite({
       role="img"
       aria-label={label}
       className={"[image-rendering:pixelated] " + className}
+      style={style}
     />
   );
 }
