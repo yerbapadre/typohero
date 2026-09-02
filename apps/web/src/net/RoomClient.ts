@@ -1,4 +1,11 @@
-import type { ClientMsg, ServerMsg, CrowdMember, WornShirt, ReactionKind } from "@typohero/protocol";
+import type {
+  ClientMsg,
+  ServerMsg,
+  CrowdMember,
+  WornShirt,
+  ReactionKind,
+  EmoteKind,
+} from "@typohero/protocol";
 import type { RoomState, LiveStat, Character } from "@typohero/engine";
 
 function wsBase(): string {
@@ -16,6 +23,7 @@ export type RoomEvents = {
   onPositions?: (players: Record<string, { x: number; y: number; facing: number }>) => void;
   onWardrobe?: (shirts: Record<string, WornShirt>) => void;
   onReaction?: (reaction: { id: string; kind: ReactionKind; x: number }) => void;
+  onEmote?: (emote: { id: string; kind: EmoteKind; crowdId: string }) => void;
   onWelcome?: (playerId: string) => void;
   onOpen?: () => void;
   onClose?: () => void;
@@ -94,6 +102,9 @@ export class RoomClient {
         break;
       case "reaction":
         this.events.onReaction?.({ id: msg.id, kind: msg.kind, x: msg.x });
+        break;
+      case "emote":
+        this.events.onEmote?.({ id: msg.id, kind: msg.kind, crowdId: msg.crowdId });
         break;
     }
   }

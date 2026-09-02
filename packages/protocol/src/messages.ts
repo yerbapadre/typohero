@@ -40,6 +40,16 @@ export type ReactionKind = "heart" | "smile" | "star";
 
 export const REACTION_KINDS: readonly ReactionKind[] = ["heart", "smile", "star"];
 
+/**
+ * A little flourish a spectator plays on their own frog: a confetti burst, a
+ * cartwheel, or a pink glow. Like a reaction this is pure relay — the room tags
+ * it with the crowd frog it came off so every machine animates the right one,
+ * then forgets it.
+ */
+export type EmoteKind = "confetti" | "cartwheel" | "glow";
+
+export const EMOTE_KINDS: readonly EmoteKind[] = ["confetti", "cartwheel", "glow"];
+
 export type ClientMsg =
   // `director` opts you out of the band: you run the show from the desk and
   // never take a lane or a spot on the riser.
@@ -50,6 +60,7 @@ export type ClientMsg =
   | { type: "wear"; shirt: WornShirt | null }
   | { type: "equip"; item: CrowdItem | null }
   | { type: "react"; kind: ReactionKind }
+  | { type: "emote"; kind: EmoteKind }
   | { type: "lockIn" }
   | { type: "backToLobby" }
   | { type: "clearSong" }
@@ -82,5 +93,7 @@ export type ServerMsg =
   | { type: "wardrobe"; shirts: Record<string, WornShirt> }
   // `x` is where the sender was standing, so the burst rises off their own frog.
   | { type: "reaction"; id: string; kind: ReactionKind; x: number }
+  // `crowdId` is the frog that played it, so every machine flourishes the right one.
+  | { type: "emote"; id: string; kind: EmoteKind; crowdId: string }
   | { type: "positions"; players: Record<string, { x: number; y: number; facing: number }> }
   | { type: "error"; code: string; message: string };

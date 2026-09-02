@@ -3,7 +3,7 @@ import type { RoomState, Song } from "@typohero/engine";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import { useChart } from "../net/useChart";
-import type { CrowdMember } from "../net/useRoom";
+import type { CrowdMember, Emote } from "../net/useRoom";
 import type { WornShirt } from "@typohero/protocol";
 import { CabinetPage } from "../ui/CabinetPage";
 import { CabinetButton, CabinetField, CabinetInput, CabinetPanel, CabinetStatus } from "../ui/cabinet";
@@ -102,6 +102,7 @@ function StageScreen({ roomId }: { roomId: string }) {
         positions={room.positions}
         crowd={room.crowd}
         wardrobe={room.wardrobe}
+        emotes={room.emotes}
         reactions={room.reactions}
         controllableCrowd={false}
       />
@@ -114,6 +115,7 @@ function StageScreen({ roomId }: { roomId: string }) {
       snapshot={snap}
       crowd={room.crowd}
       wardrobe={room.wardrobe}
+      emotes={room.emotes}
       songs={songs}
     />
   );
@@ -126,12 +128,14 @@ function PreShow({
   snapshot,
   crowd,
   wardrobe,
+  emotes,
   songs,
 }: {
   roomId: string;
   snapshot: RoomState;
   crowd: CrowdMember[];
   wardrobe: Record<string, WornShirt>;
+  emotes: Emote[];
   songs: Song[] | null;
 }) {
   const band = snapshot.members.filter((m) => m.connected && !m.director);
@@ -207,7 +211,14 @@ function PreShow({
       </div>
 
       <div className="h-[21vh] min-h-[150px] shrink-0">
-        <CrowdFloor crowd={crowd} wardrobe={wardrobe} youId={null} controllable={false} energy={1} />
+        <CrowdFloor
+          crowd={crowd}
+          wardrobe={wardrobe}
+          emotes={emotes}
+          youId={null}
+          controllable={false}
+          energy={1}
+        />
       </div>
     </div>
   );

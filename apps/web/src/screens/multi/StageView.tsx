@@ -8,8 +8,8 @@ import {
   type ChartFile,
   type RhythmRun,
 } from "@typohero/engine";
-import type { CrowdItem, ReactionKind } from "@typohero/protocol";
-import type { CrowdMember, Position, Reaction } from "../../net/useRoom";
+import type { CrowdItem, EmoteKind, ReactionKind } from "@typohero/protocol";
+import type { CrowdMember, Emote, Position, Reaction } from "../../net/useRoom";
 import type { WornShirt } from "@typohero/protocol";
 import { StageCanvas } from "../../render/StageCanvas";
 import { TRAVEL_MS } from "../../render/stage/scene";
@@ -43,6 +43,8 @@ export function StageView({
   crowdYouName,
   onMove,
   onEquip,
+  onEmote,
+  emotes = [],
   reactions = [],
   onReact,
   controllableCrowd,
@@ -65,6 +67,9 @@ export function StageView({
   crowdYouName?: string;
   onMove?: (x: number, y: number, facing: -1 | 1) => void;
   onEquip?: (item: CrowdItem | null) => void;
+  // Only a spectator with a frog in the pit can play one; everyone sees them.
+  onEmote?: (kind: EmoteKind) => void;
+  emotes?: Emote[];
   reactions?: Reaction[];
   // Only someone with a frog in the room gets the bar; the big screen watches.
   onReact?: (kind: ReactionKind) => void;
@@ -154,6 +159,8 @@ export function StageView({
           controllable={controllableCrowd}
           onMove={onMove}
           onEquip={onEquip}
+          onEmote={onEmote}
+          emotes={emotes}
           energy={energy}
         />
       </div>

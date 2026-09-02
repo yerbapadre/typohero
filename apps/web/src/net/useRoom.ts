@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ClientMsg, CrowdMember, WornShirt, ReactionKind } from "@typohero/protocol";
+import type { ClientMsg, CrowdMember, WornShirt, ReactionKind, EmoteKind } from "@typohero/protocol";
 import type { RoomState, LiveStat, Character } from "@typohero/engine";
 import { RoomClient } from "./RoomClient";
 
@@ -15,6 +15,14 @@ export const REACTION_LIFETIME_MS = 2800;
 // A ceiling on how much confetti one flood can put on screen at once.
 const MAX_REACTIONS = 40;
 
+/** A flourish playing on a crowd frog. `at` is when we received it, same reasoning
+ *  as a reaction: the animation is ours to time, not the room's. */
+export type Emote = { id: string; kind: EmoteKind; crowdId: string; at: number };
+
+// Long enough to cover the longest emote animation in index.css, with slack.
+export const EMOTE_LIFETIME_MS = 1400;
+const MAX_EMOTES = 30;
+
 export type Room = {
   snapshot: RoomState | null;
   frame: Record<string, LiveStat>;
@@ -23,6 +31,8 @@ export type Room = {
   wardrobe: Record<string, WornShirt>;
   /** Bursts still in flight, oldest first. */
   reactions: Reaction[];
+  /** Crowd-frog flourishes still animating, oldest first. */
+  emotes: Emote[];
   positions: Record<string, Position>;
   playerId: string | null;
   connected: boolean;
@@ -43,6 +53,7 @@ export function useRoom(
   const [crowd, setCrowd] = useState<CrowdMember[]>([]);
   const [wardrobe, setWardrobe] = useState<Record<string, WornShirt>>({});
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [emotes, setEmotes] = useState<Emote[]>([]);
   const [positions, setPositions] = useState<Record<string, Position>>({});
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -64,6 +75,13 @@ export function useRoom(
           setReactions((prev) => [
             ...prev.filter((p) => at - p.at < REACTION_LIFETIME_MS).slice(-MAX_REACTIONS),
             { ...r, at },
+          ]);
+        },
+        onEmote: (e) => {
+          const at = Date.now();
+          setEmotes((prev) => [
+            ...prev.filter((p) => at - p.at < EMOTE_LIFETIME_MS).slice(-MAX_EMOTES),
+            { ...e, at },
           ]);
         },
         onPositions: setPositions,
@@ -93,12 +111,25 @@ export function useRoom(
     return () => clearTimeout(t);
   }, [reactions]);
 
+  // Sweep finished emotes the same way, so a frog's flourish class falls off
+  // once the animation is done rather than lingering in the tree.
+  useEffect(() => {
+    const oldest = emotes[0];
+    if (!oldest) return;
+    const t = setTimeout(
+      () => setEmotes((prev) => prev.filter((e) => Date.now() - e.at < EMOTE_LIFETIME_MS)),
+      Math.max(0, EMOTE_LIFETIME_MS - (Date.now() - oldest.at)),
+    );
+    return () => clearTimeout(t);
+  }, [emotes]);
+
   return {
     snapshot,
     frame,
     crowd,
     wardrobe,
     reactions,
+    emotes,
     positions,
     playerId,
     connected,

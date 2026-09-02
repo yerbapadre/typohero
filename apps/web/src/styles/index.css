@@ -79,3 +79,47 @@
 .react-float {
   animation: react-float 2.4s ease-out forwards;
 }
+
+/* Crowd emotes: a spectator presses 1/2/3 and their own frog flourishes. Each
+   plays once off a keyed wrapper so a fresh press restarts it. */
+@keyframes frog-cartwheel {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.frog-cartwheel {
+  animation: frog-cartwheel 0.7s cubic-bezier(0.5, 0, 0.5, 1);
+}
+
+@keyframes frog-glow {
+  0%,
+  100% {
+    filter: none;
+  }
+  40% {
+    filter: drop-shadow(0 0 5px #ff5fbf) drop-shadow(0 0 11px #ff5fbf);
+  }
+}
+.frog-glow {
+  animation: frog-glow 1s ease-in-out;
+}
+
+@keyframes confetti-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--cx, 0), var(--cy, -60px)) rotate(var(--cr, 360deg)) scale(0.6);
+  }
+}
+.confetti-piece {
+  animation: confetti-fly 1.1s ease-out forwards;
+}

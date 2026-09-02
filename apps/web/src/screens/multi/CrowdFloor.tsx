@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { CrowdItem, WornShirt } from "@typohero/protocol";
-import type { CrowdMember } from "../../net/useRoom";
+import type { CrowdItem, EmoteKind, WornShirt } from "@typohero/protocol";
+import type { CrowdMember, Emote } from "../../net/useRoom";
 import { CROWD_FROG_IMAGE } from "../../characters";
 import { useCrowdWalk } from "../../game/useCrowdWalk";
 import { MerchShop } from "../../merch/MerchShop";
@@ -68,6 +68,55 @@ function HeldItem({ item }: { item: CrowdItem }) {
       <span className="absolute right-1.5 top-2 h-1.5 w-1.5 bg-red-700" />
       <span className="absolute left-1/2 top-3.5 h-1 w-1 -translate-x-1/2 bg-red-700" />
     </span>
+  );
+}
+
+// --- Emotes -------------------------------------------------------------
+// A spectator presses 1/2/3 and their own frog flourishes: a confetti burst, a
+// cartwheel, or a pink glow. cartwheel/glow are CSS classes on the sprite
+// wrapper; confetti is its own particle overlay.
+const EMOTE_KEY: Record<string, EmoteKind> = { "1": "confetti", "2": "cartwheel", "3": "glow" };
+
+const EMOTE_CLASS: Record<EmoteKind, string> = {
+  confetti: "",
+  cartwheel: "frog-cartwheel",
+  glow: "frog-glow",
+};
+
+const CONFETTI_COLORS = ["#f5b53f", "#ff5fbf", "#5fd0ff", "#7ee06a", "#e0475f", "#ecdcb4"];
+
+// Deterministic pieces from the emote id, so a re-render mid-burst doesn't
+// reshuffle the confetti — same trick the reaction arc uses.
+function confettiPieces(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  const next = () => (h = (h * 1103515245 + 12345) >>> 0);
+  return Array.from({ length: 14 }, (_, i) => ({
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length]!,
+    cx: (next() % 110) - 55, // -55..54px sideways
+    cy: -38 - (next() % 48), // -38..-85px up
+    cr: (next() % 720) - 360,
+    delay: (i * 23) % 120,
+  }));
+}
+
+function Confetti({ id }: { id: string }) {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-1 -translate-x-1/2">
+      {confettiPieces(id).map((p, i) => (
+        <span
+          key={i}
+          className="confetti-piece absolute block h-1.5 w-1.5 border border-black/40"
+          style={{
+            background: p.color,
+            ["--cx" as string]: `${p.cx}px`,
+            ["--cy" as string]: `${p.cy}px`,
+            ["--cr" as string]: `${p.cr}deg`,
+            animationDelay: `${p.delay}ms`,
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -422,6 +471,7 @@ function PitFrog({
   lift = 0,
   shirt,
   item,
+  emote,
 }: {
   name?: string;
   x: number;
@@ -436,6 +486,7 @@ function PitFrog({
   lift?: number;
   shirt?: WornShirt | null;
   item?: CrowdItem;
+  emote?: Emote;
 }) {
   const airborne = y > 0.4;
   const visualDir = flip ? -facing : facing;
@@ -469,23 +520,31 @@ function PitFrog({
         className="frog-bob relative"
         style={{ animationDuration: bobDuration(energy, bobOffset) }}
       >
-        <img
-          src={CROWD_FROG_IMAGE}
-          alt=""
-          draggable={false}
-          className="block w-auto object-contain"
-          style={{
-            height: `${Math.round(74 * scale)}px`,
-            transform: `scaleX(${visualDir})`,
-            opacity: name ? 1 : 0.5,
-          }}
-        />
-        <SpriteShirt shirt={shirt} />
+        {/* Emote wrapper: cartwheel spins it, glow lights it. Keyed on the emote
+            id so a fresh press replays the animation from the top. */}
+        <div
+          key={emote?.id ?? "idle"}
+          className={"relative inline-block " + (emote ? EMOTE_CLASS[emote.kind] : "")}
+        >
+          <img
+            src={CROWD_FROG_IMAGE}
+            alt=""
+            draggable={false}
+            className="block w-auto object-contain"
+            style={{
+              height: `${Math.round(74 * scale)}px`,
+              transform: `scaleX(${visualDir})`,
+              opacity: name ? 1 : 0.5,
+            }}
+          />
+          <SpriteShirt shirt={shirt} />
+        </div>
         {item && (
           <div className="absolute" style={{ bottom: 14, [visualDir > 0 ? "right" : "left"]: -2 }}>
             <HeldItem item={item} />
           </div>
         )}
+        {emote?.kind === "confetti" && <Confetti key={emote.id} id={emote.id} />}
       </div>
     </div>
   );
@@ -500,6 +559,8 @@ export function CrowdFloor({
   onMove,
   onInteract,
   onEquip,
+  onEmote,
+  emotes = [],
   energy,
 }: {
   crowd: CrowdMember[];
@@ -515,6 +576,10 @@ export function CrowdFloor({
   // Fired when you grab (or put down) something at the bar; rides the crowd
   // channel so every machine sees you carry it.
   onEquip?: (item: CrowdItem | null) => void;
+  // Fired when you press 1/2/3 to play a flourish on your own frog.
+  onEmote?: (kind: EmoteKind) => void;
+  // Flourishes in flight, keyed to the frogs that threw them.
+  emotes?: Emote[];
   energy: number;
 }) {
   const [active, setActive] = useState<Spot | null>(null);
@@ -533,6 +598,11 @@ export function CrowdFloor({
   });
 
   const others = crowd.filter((c) => c.id !== youId);
+
+  // The most recent flourish still animating on a given frog, if any. Latest
+  // wins, so mashing 1/2/3 just replaces whatever was playing.
+  const emoteFor = (id?: string | null) =>
+    id ? [...emotes].reverse().find((e) => e.crowdId === id) : undefined;
 
   // The spot you're standing in front of (grounded and within reach), if any.
   const nearSpot =
@@ -555,10 +625,16 @@ export function CrowdFloor({
   interactRef.current = onInteract;
   const openRef = useRef(active);
   openRef.current = active;
+  const emoteRef = useRef(onEmote);
+  emoteRef.current = onEmote;
   useEffect(() => {
     if (!controllable) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Enter" && nearRef.current && !openRef.current) {
+      const emoteKind = EMOTE_KEY[e.key];
+      if (emoteKind && !openRef.current) {
+        e.preventDefault();
+        emoteRef.current?.(emoteKind);
+      } else if (e.key === "Enter" && nearRef.current && !openRef.current) {
         e.preventDefault();
         setActive(nearRef.current);
         interactRef.current?.(nearRef.current.id);
@@ -609,6 +685,7 @@ export function CrowdFloor({
           shirt={wardrobe[c.id]}
           flip
           item={c.item}
+          emote={emoteFor(c.id)}
         />
       ))}
 
@@ -624,6 +701,7 @@ export function CrowdFloor({
           flip
           smooth={false}
           item={equipped ?? undefined}
+          emote={emoteFor(youId)}
         />
       )}
 
@@ -637,7 +715,7 @@ export function CrowdFloor({
 
       <div className="pointer-events-none absolute bottom-1 right-2 text-[9px] uppercase tracking-widest text-cabinet-text/35">
         👥 {crowd.length}
-        {controllable && " · ← → run · space cheer · enter interact"}
+        {controllable && " · ← → run · space cheer · enter interact · 1/2/3 emote"}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
 } from "@typohero/engine";
 import {
   REACTION_KINDS,
+  EMOTE_KINDS,
   type ClientMsg,
   type ServerMsg,
   type CrowdMember,
@@ -25,7 +26,13 @@ const MAX_ART_CHARS = 48_000;
 const REACT_MIN_MS = 160;
 
 type Env = Record<string, never>;
-type Conn = { ws: WebSocket; playerId: string | null; crowdId?: string; lastReactMs?: number };
+type Conn = {
+  ws: WebSocket;
+  playerId: string | null;
+  crowdId?: string;
+  lastReactMs?: number;
+  lastEmoteMs?: number;
+};
 type CrowdEntry = Omit<CrowdMember, "id">;
 
 export class GameRoom extends DurableObject<Env> {
@@ -40,6 +47,7 @@ export class GameRoom extends DurableObject<Env> {
   private tokens = new Map<string, string>();
   private frameTimer: ReturnType<typeof setInterval> | null = null;
   private reactionSeq = 0;
+  private emoteSeq = 0;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -223,6 +231,11 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
+    if (msg.type === "emote") {
+      this.handleEmote(conn, msg);
+      return;
+    }
+
     const playerId = conn.playerId;
     if (!playerId) return;
 
@@ -269,6 +282,25 @@ export class GameRoom extends DurableObject<Env> {
     conn.lastReactMs = now;
 
     this.broadcast({ type: "reaction", id: `r${++this.reactionSeq}`, kind: msg.kind, x: at.x });
+  }
+
+  // An emote plays on the sender's own crowd frog, so only spectators (who have
+  // a frog in the pit) can throw one; band members steer canvas frogs the pit
+  // layer can't animate. Pure relay, same as a reaction.
+  private handleEmote(conn: Conn, msg: Extract<ClientMsg, { type: "emote" }>): void {
+    if (!EMOTE_KINDS.includes(msg.kind)) return;
+    if (!conn.crowdId || !this.crowd.has(conn.crowdId)) return;
+
+    const now = Date.now();
+    if (now - (conn.lastEmoteMs ?? 0) < REACT_MIN_MS) return;
+    conn.lastEmoteMs = now;
+
+    this.broadcast({
+      type: "emote",
+      id: `e${++this.emoteSeq}`,
+      kind: msg.kind,
+      crowdId: conn.crowdId,
+    });
   }
 
   private handleJoin(conn: Conn, msg: Extract<ClientMsg, { type: "join" }>): void {

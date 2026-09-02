@@ -132,6 +132,7 @@ export function MultiPerformance({ roomId, room }: { roomId: string; room: Room 
       positions={room.positions}
       onBandMove={directing ? undefined : onBandMove}
       crowd={room.crowd}
+      emotes={room.emotes}
       reactions={room.reactions}
       onReact={onReact}
       controllableCrowd={false}

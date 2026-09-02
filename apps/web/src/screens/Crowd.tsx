@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import type { CrowdItem, ReactionKind } from "@typohero/protocol";
+import type { CrowdItem, EmoteKind, ReactionKind } from "@typohero/protocol";
 import { useRoom } from "../net/useRoom";
 import { useSongs } from "../net/useSongs";
 import { useChart } from "../net/useChart";
@@ -149,6 +149,12 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
     [],
   );
 
+  const onEmote = useCallback(
+    (kind: EmoteKind) => room.send({ type: "emote", kind }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   if (!snap) {
     return <CabinetStatus>joining the crowd at {roomId}…</CabinetStatus>;
   }
@@ -173,6 +179,8 @@ function CrowdWatch({ roomId, name }: { roomId: string; name: string }) {
         crowdYouName={name}
         onMove={onMove}
         onEquip={onEquip}
+        onEmote={onEmote}
+        emotes={room.emotes}
         reactions={room.reactions}
         onReact={onReact}
         controllableCrowd
