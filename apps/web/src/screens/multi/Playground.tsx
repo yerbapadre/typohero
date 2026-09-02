@@ -1,4 +1,7 @@
 import type { Member } from "@typohero/engine";
+import type { WornShirt } from "@typohero/protocol";
+import { SpriteShirt } from "../../merch/SpriteShirt";
+import { useWorn } from "../../merch/shirts";
 import type { CrowdMember, Position } from "../../net/useRoom";
 import { FROGS, frogById, CROWD_FROG_IMAGE } from "../../characters";
 import { useCrowdWalk } from "../../game/useCrowdWalk";
@@ -161,6 +164,7 @@ function FrogSprite({
   facing,
   flip,
   you,
+  shirt,
 }: {
   name: string;
   image: string;
@@ -169,6 +173,8 @@ function FrogSprite({
   facing: number;
   flip?: boolean;
   you?: boolean;
+  /** Only ever set for crowd frogs, which all share the one spectator sprite. */
+  shirt?: WornShirt | null;
 }) {
   return (
     <div
@@ -189,13 +195,16 @@ function FrogSprite({
       >
         {name}
       </span>
-      <img
-        src={image}
-        alt=""
-        draggable={false}
-        className="h-16 w-auto object-contain md:h-20"
-        style={{ transform: `scaleX(${flip ? -facing : facing})` }}
-      />
+      <div className="relative">
+        <img
+          src={image}
+          alt=""
+          draggable={false}
+          className="block h-16 w-auto object-contain md:h-20"
+          style={{ transform: `scaleX(${flip ? -facing : facing})` }}
+        />
+        <SpriteShirt shirt={shirt} />
+      </div>
     </div>
   );
 }
@@ -210,6 +219,7 @@ export function Playground({
   onMove,
   bandName,
   crowd,
+  wardrobe = {},
 }: {
   mode: "band" | "crowd";
   youId: string | null;
@@ -220,6 +230,7 @@ export function Playground({
   onMove: (x: number, y: number, facing: -1 | 1) => void;
   bandName: string;
   crowd: CrowdMember[];
+  wardrobe?: Record<string, WornShirt>;
 }) {
   const [zLo, zHi] = mode === "band" ? [BAND_MIN, BAND_MAX] : [CROWD_MIN, CROWD_MAX];
   const startX = mode === "band" ? 80 : 30;
@@ -228,6 +239,8 @@ export function Playground({
 
   const bandActors = members.filter((m) => m.connected && !(mode === "band" && m.id === youId));
   const crowdActors = crowd.filter((c) => !(mode === "crowd" && c.id === youId));
+  // Local, so your own shirt changes without waiting on the wardrobe relay.
+  const { shirt: yourShirt } = useWorn();
 
   return (
     <div className="w-full">
@@ -245,7 +258,16 @@ export function Playground({
 
         {/* crowd funnels into the left, outside the barrier */}
         {crowdActors.map((c) => (
-          <FrogSprite key={c.id} name={c.name} image={CROWD_FROG_IMAGE} x={c.x} y={c.y} facing={c.facing} flip />
+          <FrogSprite
+            key={c.id}
+            name={c.name}
+            image={CROWD_FROG_IMAGE}
+            x={c.x}
+            y={c.y}
+            facing={c.facing}
+            shirt={wardrobe[c.id]}
+            flip
+          />
         ))}
 
         <CopCar />
@@ -258,7 +280,16 @@ export function Playground({
           return <FrogSprite key={m.id} name={m.name} image={frog.image} x={p.x} y={p.y} facing={p.facing} />;
         })}
 
-        <FrogSprite name={youName} image={youImage} x={you.x} y={you.y} facing={you.facing} flip={mode === "crowd"} you />
+        <FrogSprite
+          name={youName}
+          image={youImage}
+          x={you.x}
+          y={you.y}
+          facing={you.facing}
+          shirt={mode === "crowd" ? yourShirt : null}
+          flip={mode === "crowd"}
+          you
+        />
       </div>
       <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-cabinet-text/40">
         ← → or A/D to run · space / ↑ / W to jump
