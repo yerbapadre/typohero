@@ -4,6 +4,7 @@ import { SpriteShirt } from "../../merch/SpriteShirt";
 import { useWorn } from "../../merch/shirts";
 import type { CrowdMember, Position } from "../../net/useRoom";
 import { FROGS, frogById, CROWD_FROG_IMAGE } from "../../characters";
+import { CrowdFrog } from "../../ui/CrowdFrog";
 import { useCrowdWalk } from "../../game/useCrowdWalk";
 
 const GROUND = 8; // % baseline above the floor
@@ -165,6 +166,7 @@ function FrogSprite({
   flip,
   you,
   shirt,
+  cameo,
 }: {
   name: string;
   image: string;
@@ -175,6 +177,11 @@ function FrogSprite({
   you?: boolean;
   /** Only ever set for crowd frogs, which all share the one spectator sprite. */
   shirt?: WornShirt | null;
+  /**
+   * Crowd frogs only: let a name matching a premium character swap the body for
+   * that character. Bandmates already picked a face, so they opt out.
+   */
+  cameo?: boolean;
 }) {
   return (
     <div
@@ -196,11 +203,10 @@ function FrogSprite({
         {name}
       </span>
       <div className="relative">
-        <img
+        <CrowdFrog
+          name={cameo ? name : undefined}
           src={image}
-          alt=""
-          draggable={false}
-          className="block h-16 w-auto object-contain md:h-20"
+          className="block h-16 w-auto md:h-20"
           style={{ transform: `scaleX(${flip ? -facing : facing})` }}
         />
         <SpriteShirt shirt={shirt} />
@@ -270,6 +276,7 @@ export function Playground({
             facing={c.facing}
             shirt={wardrobe[c.id]}
             flip
+            cameo
           />
         ))}
 
@@ -292,6 +299,7 @@ export function Playground({
             facing={you.facing}
             shirt={mode === "crowd" ? yourShirt : null}
             flip={mode === "crowd"}
+            cameo={mode === "crowd"}
             you
           />
         )}

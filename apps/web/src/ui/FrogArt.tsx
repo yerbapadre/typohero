@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Frog } from "../characters";
 import { PixelSprite } from "./PixelSprite";
 import { SPRITES } from "./pixelSprites";
@@ -11,10 +11,12 @@ export function FrogArt({
   frog,
   className = "",
   dimmed = false,
+  style,
 }: {
   frog: Frog;
   className?: string;
   dimmed?: boolean;
+  style?: CSSProperties;
 }) {
   const [broken, setBroken] = useState(false);
   const dim = dimmed ? " opacity-40 saturate-0" : "";
@@ -23,7 +25,7 @@ export function FrogArt({
   if (sprite) {
     // Pixel sprites stay in full color even when locked — the padlock badge
     // already signals the locked state, so no dimming here.
-    return <PixelSprite grid={sprite} label={frog.name} className={className} />;
+    return <PixelSprite grid={sprite} label={frog.name} className={className} style={style} />;
   }
 
   if (broken) {
@@ -37,6 +39,7 @@ export function FrogArt({
           " " +
           className
         }
+        style={style}
       >
         🐸
       </div>
@@ -50,6 +53,7 @@ export function FrogArt({
       draggable={false}
       onError={() => setBroken(true)}
       className={"object-contain" + dim + " " + className}
+      style={style}
     />
   );
 }

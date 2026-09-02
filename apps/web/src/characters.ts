@@ -11,6 +11,11 @@ export type Frog = {
   premium?: true;
   /** Display price for a premium frog, shown on the locked badge. */
   price?: string;
+  /**
+   * Extra spellings that trigger this frog's crowd cameo, on top of its own
+   * name — nicknames, last names, whatever people actually type.
+   */
+  cameoAliases?: string[];
 };
 
 export const FROGS: Frog[] = [
@@ -102,3 +107,31 @@ export const FREE_FROG_IDS = FROGS.filter((f) => !f.premium).map((f) => f.id);
 
 // Shared sprite for every crowd member — a spectator frog filming on a phone.
 export const CROWD_FROG_IMAGE = '/frogs/crowd.png';
+
+// ── Crowd cameos (easter egg) ─────────────────────────────────────────────
+// A spectator whose name mentions a premium character shows up in the pit as
+// that character instead of the stock crowd frog. The table is derived from
+// FROGS, so a new premium entry gets a cameo for free: its own name is always
+// an alias, and `cameoAliases` covers spellings the name doesn't.
+
+/** Aliases shorter than this match far too much to be fun ('jo', 'e'). */
+const MIN_CAMEO_ALIAS = 3;
+
+// Case, spaces and punctuation are all noise here: 'ERIKA_99' and 'john!!'
+// should both land on their character.
+function foldName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Longest alias first, so a specific alias beats a shorter one inside it.
+const CAMEOS: { alias: string; frog: Frog }[] = FROGS.filter((f) => f.premium)
+  .flatMap((f) => [f.name, ...(f.cameoAliases ?? [])].map((a) => ({ alias: foldName(a), frog: f })))
+  .filter((c) => c.alias.length >= MIN_CAMEO_ALIAS)
+  .sort((a, b) => b.alias.length - a.alias.length);
+
+/** The premium frog a crowd name is secretly wearing, if any. */
+export function cameoFrogFor(name: string | null | undefined): Frog | undefined {
+  const folded = foldName(name ?? '');
+  if (!folded) return undefined;
+  return CAMEOS.find((c) => folded.includes(c.alias))?.frog;
+}

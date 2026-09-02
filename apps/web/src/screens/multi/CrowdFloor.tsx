@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { CrowdItem, EmoteKind, WornShirt } from "@typohero/protocol";
 import type { CrowdMember, Emote } from "../../net/useRoom";
 import { CROWD_FROG_IMAGE } from "../../characters";
+import { CrowdFrog } from "../../ui/CrowdFrog";
 import { useCrowdWalk } from "../../game/useCrowdWalk";
 import { MerchShop } from "../../merch/MerchShop";
 import { SpriteShirt } from "../../merch/SpriteShirt";
@@ -526,11 +527,9 @@ function PitFrog({
           key={emote?.id ?? "idle"}
           className={"relative inline-block " + (emote ? EMOTE_CLASS[emote.kind] : "")}
         >
-          <img
-            src={CROWD_FROG_IMAGE}
-            alt=""
-            draggable={false}
-            className="block w-auto object-contain"
+          <CrowdFrog
+            name={name}
+            className="block w-auto"
             style={{
               height: `${Math.round(74 * scale)}px`,
               transform: `scaleX(${visualDir})`,
