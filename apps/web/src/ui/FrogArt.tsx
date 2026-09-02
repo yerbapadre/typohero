@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { Frog } from "../characters";
+import { PixelSprite } from "./PixelSprite";
+import { SPRITES } from "./pixelSprites";
 
 /**
  * Frog portrait that degrades to a silhouette when the art file isn't there
@@ -16,6 +18,13 @@ export function FrogArt({
 }) {
   const [broken, setBroken] = useState(false);
   const dim = dimmed ? " opacity-40 saturate-0" : "";
+
+  const sprite = SPRITES[frog.id];
+  if (sprite) {
+    // Pixel sprites stay in full color even when locked — the padlock badge
+    // already signals the locked state, so no dimming here.
+    return <PixelSprite grid={sprite} label={frog.name} className={className} />;
+  }
 
   if (broken) {
     return (

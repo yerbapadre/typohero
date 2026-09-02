@@ -75,11 +75,9 @@ export function FrogList({
           <div className="relative flex h-44 items-center justify-center md:h-52">
             <FrogArt frog={frog} dimmed={locked} className="h-44 w-auto md:h-52" />
             {locked && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <span className="border-2 border-cabinet-accent bg-black/70 px-3 py-1.5 text-[11px] uppercase tracking-widest text-cabinet-accent">
-                  🔒 Locked
-                </span>
-              </div>
+              <span className="pointer-events-none absolute right-0 top-0 z-10 flex items-center gap-1.5 border-2 border-cabinet-accent bg-black/70 px-2 py-1 text-[11px] uppercase tracking-widest text-cabinet-accent">
+                🔒{frog.price && <span className="text-white">{frog.price}</span>}
+              </span>
             )}
             {frog.premium && !locked && (
               <span className="pointer-events-none absolute right-0 top-0 border-2 border-cabinet-accent bg-cabinet-accent px-2 py-0.5 text-[9px] uppercase tracking-widest text-cabinet-ink">

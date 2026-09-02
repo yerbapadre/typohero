@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Premium characters — 8-bit — design sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              cabinet: {
+                bg: "#12100a",
+                accent: "#f5b53f",
+                ink: "#1a1305",
+                frame: "#2a2212",
+                shadow: "#6b4e18",
+                btn: "#1a1710",
+                border: "#322a18",
+                text: "#ecdcb4",
+              },
+            },
+            fontFamily: { pixel: ['"Silkscreen"', "monospace"] },
+          },
+        },
+      };
+    </script>
+    <style>
+      canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+      @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+      .bob { animation: bob 1.6s ease-in-out infinite; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-cabinet-bg p-8 font-pixel text-cabinet-text">
+    <div class="mx-auto max-w-4xl">
+      <h1 class="mb-1 text-lg uppercase tracking-[0.3em] text-cabinet-accent">Premium — 8-bit</h1>
+      <p class="mb-8 font-mono text-[12px] text-cabinet-text/50">
+        design sandbox. john &amp; erika as full little pixel bodies drawn off their
+        photos — john: ginger curls, black tee, jeans. erika: long center-part hair,
+        dark top, jeans. reference photo beside each. locked badge top-right, $59.99.
+      </p>
+
+      <div id="roster" class="grid gap-8 sm:grid-cols-2"></div>
+    </div>
+
+    <script>
+      const PAL = {
+        ".": null,
+        R: "#c8622d", r: "#9c4a1f",   // john ginger hair / brows
+        H: "#6b4a2b", h: "#8a6238",   // erika brown hair
+        S: "#f2c9a0", s: "#d8a980",   // skin / shade
+        W: "#ffffff", B: "#3a6ea5",   // eye white / blue iris
+        M: "#a24a44", K: "#141414",   // mouth / black (tee, shoes, pupils)
+        D: "#23252e",                 // erika dark top
+        J: "#2f4a7a",                 // denim jeans
+      };
+
+      // 24-wide full-body sprites. Short rows are right-padded, left features hold.
+
+      // JOHN — ginger curls, blue eyes, big smile, black tee, jeans, sneakers.
+      const JOHN = [
+        ".........RRRRRR.........",
+        ".......RRRRRRRRRR.......",
+        "......RRRRRRRRRRRR......",
+        "......RRSSSSSSSSRR......",
+        "......RRSSSSSSSSRR......",
+        "......RRSrrSSrrSRR......",
+        "......RRSWBSSWBSRR......",
+        "......RRSSSssSSSRR......",
+        "......RRSSMMMMSSRR......",
+        "......RRSSWWWWSSRR......",
+        "......RRSSSSSSSSRR......",
+        ".......RSSSSSSSSR.......",
+        "........SSSSSSSS........",
+        "..........SSSS.........",
+        "......KKKKKKKKKKKK......",
+        "......KKKKKKKKKKKK......",
+        "......KKKKKKKKKKKK......",
+        "......SSKKKKKKKKSS......",
+        "......SSKKKKKKKKSS......",
+        "......SSKKKKKKKKSS......",
+        "........KKKKKKKK........",
+        "........JJJJJJJJ........",
+        "........JJJJJJJJ........",
+        "........JJJJJJJJ........",
+        "........JJJ..JJJ........",
+        "........JJJ..JJJ........",
+        "........JJJ..JJJ........",
+        "........JJJ..JJJ........",
+        ".......KKKK..KKKK.......",
+        ".......KKKK..KKKK.......",
+      ];
+
+      // ERIKA — long center-part brown hair, blue eyes, smile, dark top, jeans.
+      const ERIKA = [
+        "........HHHHHHHH........",
+        "......HHHHHHHHHHHH......",
+        ".....HHHHHHHHHHHHHH.....",
+        ".....HHHHHHhhHHHHHH.....",
+        ".....HHHSSSSSSSSHHH.....",
+        ".....HHHSSSSSSSSHHH.....",
+        ".....HHHSrrSSrrSHHH.....",
+        ".....HHHSWBSSWBSHHH.....",
+        ".....HHHSSSssSSSHHH.....",
+        ".....HHHSSMMMMSSHHH.....",
+        ".....HHHSSWWWWSSHHH.....",
+        ".....HHHSSSSSSSSHHH.....",
+        ".....HHHHSSSSSSHHHH.....",
+        ".....HHHH.SSSS.HHHH.....",
+        ".....HHHHDDDDDDHHHH.....",
+        ".....HHHDDDDDDDDHHH.....",
+        ".....HHDDDDDDDDDDHH.....",
+        ".....HHDDDDDDDDDDHH.....",
+        ".....HHDDDDDDDDDDHH.....",
+        "......DDDDDDDDDDDD......",
+        "......SSDDDDDDDDSS......",
+        "......SSDDDDDDDDSS......",
+        "........DDDDDDDD........",
+        "........JJJJJJJJ........",
+        "........JJJJJJJJ........",
+        "........JJJ..JJJ........",
+        "........JJJ..JJJ........",
+        "........JJJ..JJJ........",
+        "........JJJ..JJJ........",
+        ".......KKKK..KKKK.......",
+        ".......KKKK..KKKK.......",
+      ];
+
+      const CHARS = [
+        { name: "John", tag: "dad bod guitarist", grid: JOHN, accent: "#e879f9", photo: "frogs/premium/john.jpeg" },
+        { name: "Erika", tag: "born rockstar", grid: ERIKA, accent: "#38bdf8", photo: "frogs/premium/erika.jpeg" },
+      ];
+
+      const SCALE = 8;
+      const W = 24;
+      function drawGrid(ctx, grid) {
+        for (let y = 0; y < grid.length; y++) {
+          const row = grid[y];
+          for (let x = 0; x < W; x++) {
+            const color = PAL[row[x] || "."];
+            if (!color) continue;
+            ctx.fillStyle = color;
+            ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+          }
+        }
+      }
+
+      const roster = document.getElementById("roster");
+      for (const c of CHARS) {
+        const card = document.createElement("div");
+        card.className =
+          "relative border-[3px] border-cabinet-frame bg-black/20 p-5 shadow-[8px_8px_0_#6b4e18]";
+
+        const badge = document.createElement("span");
+        badge.className =
+          "pointer-events-none absolute right-2 top-2 z-10 flex items-center gap-1.5 border-2 px-2 py-1 text-[11px] uppercase tracking-widest";
+        badge.style.borderColor = c.accent;
+        badge.style.color = c.accent;
+        badge.style.background = "rgba(0,0,0,0.7)";
+        badge.innerHTML = '🔒<span style="color:#fff">$59.99</span>';
+        card.appendChild(badge);
+
+        const row = document.createElement("div");
+        row.className = "flex items-end justify-center gap-5";
+
+        const cv = document.createElement("canvas");
+        cv.width = W * SCALE;
+        cv.height = c.grid.length * SCALE;
+        cv.className = "bob";
+        cv.style.width = W * SCALE + "px";
+        cv.style.height = c.grid.length * SCALE + "px";
+        const ctx = cv.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        drawGrid(ctx, c.grid);
+        row.appendChild(cv);
+
+        const img = document.createElement("img");
+        img.src = c.photo;
+        img.className = "h-20 w-20 border-2 border-cabinet-border object-cover opacity-70 grayscale";
+        img.alt = c.name + " reference";
+        row.appendChild(img);
+        card.appendChild(row);
+
+        const name = document.createElement("div");
+        name.className = "mt-4 text-center text-sm font-bold text-white";
+        name.textContent = c.name;
+        card.appendChild(name);
+
+        const tag = document.createElement("div");
+        tag.className = "text-center text-[11px] lowercase tracking-wide";
+        tag.style.color = c.accent;
+        tag.textContent = c.tag;
+        card.appendChild(tag);
+
+        roster.appendChild(card);
+      }
+    </script>
+  </body>
+</html>
