@@ -41,6 +41,7 @@ export function StageView({
   wardrobe,
   crowdYouId,
   crowdYouName,
+  crowdUsername,
   onMove,
   onEquip,
   onEmote,
@@ -65,6 +66,8 @@ export function StageView({
   wardrobe?: Record<string, WornShirt>;
   crowdYouId?: string | null;
   crowdYouName?: string;
+  /** Wallet key for the booths in the pit. */
+  crowdUsername?: string | null;
   onMove?: (x: number, y: number, facing: -1 | 1) => void;
   onEquip?: (item: CrowdItem | null) => void;
   // Only a spectator with a frog in the pit can play one; everyone sees them.
@@ -163,6 +166,7 @@ export function StageView({
           wardrobe={wardrobe}
           youId={crowdYouId ?? null}
           youName={crowdYouName}
+          username={crowdUsername}
           controllable={controllableCrowd}
           onMove={onMove}
           onEquip={onEquip}

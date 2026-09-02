@@ -171,7 +171,12 @@ export class GameRoom extends DurableObject<Env> {
       }
       const id = msg.id ?? crypto.randomUUID();
       conn.crowdId = id;
-      this.crowd.set(id, { name: msg.name?.trim() || "someone", x: 30, y: 0, facing: 1 });
+      this.crowd.set(id, {
+        name: msg.name?.trim() || "someone",
+        x: 30,
+        y: 0,
+        facing: 1,
+      });
       this.broadcastCrowd();
       return;
     }

@@ -58,6 +58,12 @@ pnpm build
 node apps/web/scripts/generate-loop.mjs apps/web/public/songs/placeholder/loop.wav
 #    (then copy to vocals/drums/bass/guitar/piano/other .wav + write song.json)
 ./scripts/sync-songs.sh placeholder
+
+# 4. Create the store database and apply migrations. Local wrangler keeps its
+#    own D1 on disk and ignores database_id, so this is enough for dev; for a
+#    real deploy run `wrangler d1 create typohero` and paste the returned id
+#    into apps/server/wrangler.toml, then re-run with --remote.
+cd apps/server && pnpm exec wrangler d1 migrations apply typohero --local && cd ../..
 ```
 
 ### Running
@@ -96,6 +102,37 @@ authenticated `PUT /api/songs/:id/:file` is how they get into the catalog.
 ```
 
 Keep copyrighted audio out of the repo — real songs are gitignored; only `placeholder/` is committed.
+
+### The store (LeCoin)
+
+Crowd spectators get **LeCoin** the first time their username is seen and spend it at the pit
+booths. Wallets, the product catalog, and every transaction live in D1 (`DB` binding); what a
+wallet owns is derived from the ledger, so there is no inventory table to fall out of sync.
+
+- Opening balance: `STARTING_LECOIN` in `packages/engine/src/store.ts`. One knob, one place.
+- The username is the wallet key (normalized: trimmed, lowercased, whitespace collapsed) and
+  the frog's nameplate. It lives in `localStorage`, so coins survive a browser restart.
+- A product's `icon` is an emoji, or an asset path starting with `/` rendered as an image.
+
+Adding stock needs no migration:
+
+```
+cd apps/server
+pnpm exec wrangler d1 execute typohero --local --command \
+  "INSERT INTO products (id, booth, name, description, price, icon, sort_order)
+   VALUES ('tour-poster', 'merch', 'Tour Poster', 'Curls at the corners.', 40, '🪧', 4)"
+#  ...same with --remote to put it in front of a real crowd
+```
+
+Booths are `merch`, `bar`, and `recs` — the three props in the pit (`CrowdFloor.tsx`). A booth
+with no rows shows an empty state, which is what `recs` does today.
+
+Art for an item is generated pixel art on a cream background, cut out and downscaled by:
+
+```
+./scripts/prep-store-assets.sh ~/Downloads/pie.jpeg baja-blast-pie
+#  -> apps/web/public/store/baja-blast-pie.png, referenced as '/store/baja-blast-pie.png'
+```
 
 ### Deploy
 

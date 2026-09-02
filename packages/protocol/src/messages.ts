@@ -14,8 +14,13 @@ import type {
  */
 export type WornShirt = { garment: string; art: string };
 
-// Something a crowd frog can carry around the pit, grabbed at the bar.
-export type CrowdItem = "drink" | "pizza";
+// Something a crowd frog can carry around the pit: one of the built-in props
+// grabbed at the bar, or the id of a product bought at a booth with LeCoin.
+// The `& {}` keeps editor completion for the built-ins while still admitting
+// any catalog id, so the store rides this channel instead of adding its own.
+export const BUILT_IN_ITEMS = ["drink", "pizza"] as const;
+export type BuiltInItem = (typeof BUILT_IN_ITEMS)[number];
+export type CrowdItem = BuiltInItem | (string & {});
 
 // A spectator in the pit. Crowd frogs never join the roster, so everything
 // about them — where they stand, what they carry, what they voted for — rides

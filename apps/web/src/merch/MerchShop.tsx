@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FROGS } from "../characters";
 import { playableFrogs } from "../game/unlocks";
 import { DrawCanvas, type DrawHandle, type Tool } from "./DrawCanvas";
@@ -39,7 +39,14 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-export function MerchShop({ onClose }: { onClose: () => void }) {
+export function MerchShop({
+  onClose,
+  tabs,
+}: {
+  onClose: () => void;
+  /** Booth switcher, when the press shares its booth with the shop. */
+  tabs?: ReactNode;
+}) {
   const press = useRef<DrawHandle | null>(null);
   const designs = useDesigns();
   const { designId: wornId } = useWorn();
@@ -146,6 +153,8 @@ export function MerchShop({ onClose }: { onClose: () => void }) {
             Esc · close
           </button>
         </header>
+
+        {tabs && <div className="mt-4">{tabs}</div>}
 
         <div className="mt-4 grid gap-5 md:grid-cols-[300px_1fr]">
           {/* ── the press ───────────────────────────────────────────── */}
